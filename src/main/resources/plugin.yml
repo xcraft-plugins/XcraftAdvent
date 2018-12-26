@@ -1,0 +1,23 @@
+name: ${pom.name}
+version: ${pom.version}
+main: de.groovybyte.spigot.xcraftadvent.XcraftAdvent
+description: ${pom.description}
+authors: [Salami555]
+website: ${pom.url}
+api-version: 1.13
+commands:
+    adventskalender:
+        aliases: [xmas, advent]
+        description: Opens the advent calendar GUI
+        usage: /advent
+        permission: calendar.ownAndShow
+permissions:
+    calendar.admin.showAny:
+        description: required to show unowned calendars
+        default: op
+    calendar.ownAndShow:
+        description: required to own and show a calendar 
+        default: true
+    calendar.openDoors:
+        description: required to open doors in own calendar
+        default: true
