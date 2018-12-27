@@ -8,7 +8,7 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
 import org.bukkit.Bukkit;
@@ -71,7 +71,7 @@ public class CalendarManager {
 
     public void save() throws IOException {
         long t1 = System.currentTimeMillis();
-        this.activePlayers.forEach((UUID pid, PlayerCalendar cal) -> this.data.put(pid, cal.getOpenStatus()));       
+        this.activePlayers.forEach((UUID pid, PlayerCalendar cal) -> this.data.put(pid, cal.getOpenStatus()));
         try (FileWriter fw = new FileWriter(this.saveFile, false)) {
             for (Map.Entry<UUID, Integer> entry : this.data.entrySet()) {
                 fw.write(String.format("%s:%x\n",
@@ -99,21 +99,23 @@ public class CalendarManager {
     public PlayerCalendar get(Player p) {
         return this.activePlayers.get(p.getUniqueId());
     }
+    
+    public IDateChecker getDateChecker() {
+        return plugin.getDateChecker();
+    }
 
-    public PlayerCalendar playerJoin(Player p) {
-        if (!DateChecker.isLateOpenTime()) {
-            return null;
+    public Optional<PlayerCalendar> playerJoin(Player p) {
+        if (getDateChecker().isCalendarTime()) {
+            UUID pid = p.getUniqueId();
+            if (this.activePlayers.containsKey(pid)) {
+                return Optional.of(this.activePlayers.get(pid));
+            } else if (this.data.containsKey(pid) || getDateChecker().canCreateNewCalendar()) {
+                PlayerCalendar calendar = getNewCalendar(p);
+                this.activePlayers.put(pid, calendar);
+                return Optional.of(calendar);
+            }
         }
-        UUID pid = p.getUniqueId();
-        if (this.activePlayers.containsKey(pid)) {
-            return this.activePlayers.get(pid);
-        } else if (!DateChecker.isNewCalendarTime() && !this.data.containsKey(pid)) {
-            return null;
-        } else {
-            PlayerCalendar calendar = getNewCalendar(p);
-            this.activePlayers.put(pid, calendar);
-            return calendar;
-        }
+        return Optional.empty();
     }
 
     public PlayerCalendar getNewCalendar(Player p) {

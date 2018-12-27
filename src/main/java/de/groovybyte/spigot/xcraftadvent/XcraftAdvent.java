@@ -24,198 +24,210 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public final class XcraftAdvent extends JavaPlugin implements Listener, CommandExecutor {
 
-	/* fix: give item only in gm 0 */
-	//protected final String PERM_admin_peek = "calendar.admin.showAny";
-	protected final String PERM_ownAndShow = "calendar.ownAndShow";
-	protected final String PERM_openDoors = "calendar.openDoors";
+    public final static boolean DEBUG = true;
 
-	protected CalendarManager man;
+    /* fix: give item only in gm 0 */
+    //protected final String PERM_admin_peek = "calendar.admin.showAny";
+    protected final String PERM_ownAndShow = "calendar.ownAndShow";
+    protected final String PERM_openDoors = "calendar.openDoors";
 
-	public void log(Level level, String log) {
-		this.getLogger().log(level, log);
-	}
+    protected CalendarManager man;
+    protected final IDateChecker dateChecker;
 
-	public void message(Player p, String s) {
-		p.sendMessage(Messages.CHAT_PREFIX + s);
-	}
+    public XcraftAdvent() {
+        dateChecker = DEBUG ? new DebugDateChecker() : new DefaultDateChecker();
+    }
 
-	@Override
-	public void onEnable() {
-		File pluginFolder = this.getDataFolder();
-		if (!pluginFolder.exists()) {
-			pluginFolder.mkdirs();
-		}
-		man = new CalendarManager(this,
-				new File(pluginFolder, "calendar.cfg"),
-				new File(pluginFolder, "players.data")
-		);
+    public void log(Level level, String log) {
+        this.getLogger().log(level, log);
+    }
+
+    public void message(Player p, String s) {
+        p.sendMessage(Messages.CHAT_PREFIX + s);
+    }
+
+    public IDateChecker getDateChecker() {
+        return dateChecker;
+    }
+
+    @Override
+    public void onEnable() {
+        File pluginFolder = this.getDataFolder();
+        if (!pluginFolder.exists()) {
+            pluginFolder.mkdirs();
+        }
+        man = new CalendarManager(this,
+                new File(pluginFolder, "calendar.cfg"),
+                new File(pluginFolder, "players.data")
+        );
 
 //        if (!DateChecker.isDecember()) {
 //            this.log(Level.WARNING, "this month is not december, the plugin will be disabled");
 //            this.getPluginLoader().disablePlugin(this);
 //            return;
 //        }
-		try {
-			man.load();
-		} catch (IOException e) {
-			this.log(Level.WARNING, "IO error with save-file while loading: " + e.getLocalizedMessage());
-		}
+        try {
+            man.load();
+        } catch (IOException e) {
+            this.log(Level.WARNING, "IO error with save-file while loading: " + e.getLocalizedMessage());
+        }
 
-		Bukkit.getPluginManager().registerEvents(this, this);
-		this.getCommand("adventskalender").setExecutor(this);
-	}
+        Bukkit.getPluginManager().registerEvents(this, this);
+        this.getCommand("adventskalender").setExecutor(this);
+    }
 
-	@Override
-	public void onDisable() {
-		try {
-			man.save();
-		} catch (IOException e) {
-			this.log(Level.WARNING, "IO error with save-file while saving: " + e.getLocalizedMessage());
-		}
-	}
+    @Override
+    public void onDisable() {
+        try {
+            man.save();
+        } catch (IOException e) {
+            this.log(Level.WARNING, "IO error with save-file while saving: " + e.getLocalizedMessage());
+        }
+    }
 
-	@EventHandler
-	public void onPlayerJoin(PlayerJoinEvent ev) {
-		Player p = ev.getPlayer();
-		if (p.hasPermission(PERM_ownAndShow)) {
-			PlayerCalendar cal = man.playerJoin(p);
-			if (cal != null && cal.hasClosedDoors()) {
-				Bukkit.getScheduler().runTaskLater(this, () -> {
-					this.message(p, Messages.MSG_COMMAND_INFO);
-					if (p.getGameMode().equals(GameMode.SURVIVAL)) {
-						Bukkit.dispatchCommand(p, "advent");
-					}
-				}, 20);
-			}
-		}
-	}
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent ev) {
+        Player p = ev.getPlayer();
+        if (p.hasPermission(PERM_ownAndShow)) {
+            man.playerJoin(p).ifPresent((cal) -> {
+                if (cal.hasClosedDoors()) {
+                    Bukkit.getScheduler().runTaskLater(this, () -> {
+                        this.message(p, Messages.MSG_COMMAND_INFO);
+                        if (p.getGameMode().equals(GameMode.SURVIVAL)) {
+                            Bukkit.dispatchCommand(p, "advent");
+                        }
+                    }, 20);
+                }
+            });
+        }
+    }
 
-	@EventHandler
-	public void onPlayerQuit(PlayerQuitEvent ev) {
-		man.playerQuit(ev.getPlayer());
-	}
+    @EventHandler
+    public void onPlayerQuit(PlayerQuitEvent ev) {
+        man.playerQuit(ev.getPlayer());
+    }
 
-	protected boolean opCommand(Player p, String[] args) {
-		if (args[0].equalsIgnoreCase("edit")) {
-			if (args.length == 1) {
-				Bukkit.getScheduler().runTask(this, () -> this.man.EDITOR.startEditing(p));
-			} else {
-				try {
-					int day = Integer.parseInt(args[1]);
-					if (day < 1 || day > 24) {
-						throw new NumberFormatException("not a day from the calendar");
-					}
-					switch (args[2].toLowerCase()) {
-						case "clear":
-							this.man.EDITOR.clearCommands(day);
-							break;
-						case "add":
-							this.man.EDITOR.addCommand(day, Arrays.asList(args).subList(3, args.length).stream().collect(Collectors.joining(" ")));
-							break;
-						case "test":
-							this.man.getDoor(day).reward(p);
-							break;
-						default:
-							throw new NumberFormatException("wrong usage");
-					}
-				} catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
-					this.message(p, "Error: " + e.getMessage());
-					this.message(p, "use \"edit [day] clear/add/test [command]\"");
-					return false;
-				}
-			}
-			return true;
-		}
-		return false;
-	}
+    protected boolean opCommand(Player p, String[] args) {
+        if (args[0].equalsIgnoreCase("edit")) {
+            if (args.length == 1) {
+                Bukkit.getScheduler().runTask(this, () -> this.man.EDITOR.startEditing(p));
+            } else {
+                try {
+                    int day = Integer.parseInt(args[1]);
+                    if (day < 1 || day > 24) {
+                        throw new NumberFormatException("not a day from the calendar");
+                    }
+                    switch (args[2].toLowerCase()) {
+                        case "clear":
+                            this.man.EDITOR.clearCommands(day);
+                            break;
+                        case "add":
+                            this.man.EDITOR.addCommand(day, Arrays.asList(args).subList(3, args.length).stream().collect(Collectors.joining(" ")));
+                            break;
+                        case "test":
+                            this.man.getDoor(day).reward(p);
+                            break;
+                        default:
+                            throw new NumberFormatException("wrong usage");
+                    }
+                } catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
+                    this.message(p, "Error: " + e.getMessage());
+                    this.message(p, "use \"edit [day] clear/add/test [command]\"");
+                    return false;
+                }
+            }
+            return true;
+        }
+        return false;
+    }
 
-	@Override
-	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-		if (args.length > 0 && args[0].equalsIgnoreCase("reload")) {
-			try {
-				man.load();
-			} catch (IOException e) {
-				this.log(Level.WARNING, "IO error with save-file while loading: " + e.getLocalizedMessage());
-			}
-			return true;
-		}
-		if (sender instanceof Player) {
-			Player p = (Player) sender;
-			if (args.length > 0 && p.isOp()) {
-				if (this.opCommand(p, args)) {
-					return true;
-				}
-			}
+    @Override
+    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
+        if (args.length > 0 && args[0].equalsIgnoreCase("reload")) {
+            try {
+                man.load();
+            } catch (IOException e) {
+                this.log(Level.WARNING, "IO error with save-file while loading: " + e.getLocalizedMessage());
+            }
+            return true;
+        }
+        if (sender instanceof Player) {
+            Player p = (Player) sender;
+            if (args.length > 0 && p.isOp()) {
+                if (this.opCommand(p, args)) {
+                    return true;
+                }
+            }
 
-			if (p.hasPermission(PERM_ownAndShow)) {
-				if (!man.isActive(p)) {
-					this.message(p, Messages.MSG_WRONG_TIME);
-				} else if (p.getGameMode().equals(GameMode.SURVIVAL)) {
-					Bukkit.getScheduler().runTask(this, () -> p.openInventory(man.get(p).getCalendar()));
-				} else {
-					this.message(p, Messages.MSG_WRONG_GAMEMODE);
-				}
-			} else {
-				this.message(p, Messages.MSG_MISSING_PERM);
-			}
-			return true;
-		} else {
-			sender.sendMessage("not supported");
-		}
-		return false;
-	}
+            if (p.hasPermission(PERM_ownAndShow)) {
+                if (!man.isActive(p)) {
+                    this.message(p, Messages.MSG_WRONG_TIME);
+                } else if (p.getGameMode().equals(GameMode.SURVIVAL)) {
+                    Bukkit.getScheduler().runTask(this, () -> p.openInventory(man.get(p).getCalendar()));
+                } else {
+                    this.message(p, Messages.MSG_WRONG_GAMEMODE);
+                }
+            } else {
+                this.message(p, Messages.MSG_MISSING_PERM);
+            }
+            return true;
+        } else {
+            sender.sendMessage("not supported");
+        }
+        return false;
+    }
 
-	@EventHandler
-	public void onInventoryClose(InventoryCloseEvent ev) {
-		Player p = (Player) ev.getPlayer();
-		Inventory ei = ev.getInventory();
-		if (ei == null || !ei.getType().equals(InventoryType.CHEST)) {
-			return;
-		}
-		if (this.man.EDITOR.isEditing(p)) {
-			this.man.EDITOR.stopEditing();
-		}
-	}
+    @EventHandler
+    public void onInventoryClose(InventoryCloseEvent ev) {
+        Player p = (Player) ev.getPlayer();
+        Inventory ei = ev.getInventory();
+        if (ei == null || !ei.getType().equals(InventoryType.CHEST)) {
+            return;
+        }
+        if (this.man.EDITOR.isEditing(p)) {
+            this.man.EDITOR.stopEditing();
+        }
+    }
 
-	@EventHandler
-	public void onInventoryClick(InventoryClickEvent ev) {
-		Player p = (Player) ev.getWhoClicked();
-		Inventory ei = ev.getClickedInventory();
-		if (ei == null || !ei.getType().equals(InventoryType.CHEST)) { // || ei.getHolder() == null || !ei.getHolder().equals(p)
-			return;
-		}
-		if (p.isOp() && this.man.EDITOR.isEditing(p)) {
-			this.man.EDITOR.edit(ev);
-			return;
-		}
+    @EventHandler
+    public void onInventoryClick(InventoryClickEvent ev) {
+        Player p = (Player) ev.getWhoClicked();
+        Inventory ei = ev.getClickedInventory();
+        if (ei == null || !ei.getType().equals(InventoryType.CHEST)) { // || ei.getHolder() == null || !ei.getHolder().equals(p)
+            return;
+        }
+        if (p.isOp() && this.man.EDITOR.isEditing(p)) {
+            this.man.EDITOR.edit(ev);
+            return;
+        }
 
-		PlayerCalendar pc = man.get(p);
-		if (pc == null || !pc.isCalendar(ev.getInventory())) {
-			return;
-		}
+        PlayerCalendar pc = man.get(p);
+        if (pc == null || !pc.isCalendar(ev.getInventory())) {
+            return;
+        }
 
-		ev.setCancelled(true);
-		if (!p.hasPermission(PERM_openDoors)) {
-			this.message(p, Messages.MSG_MISSING_PERM);
-			return;
-		}
+        ev.setCancelled(true);
+        if (!p.hasPermission(PERM_openDoors)) {
+            this.message(p, Messages.MSG_MISSING_PERM);
+            return;
+        }
 
-		ItemStack ci = ev.getCurrentItem();
-		if (pc.isValidDoor(ci)) {
-			int day = pc.getClickedDay(ci);
+        ItemStack ci = ev.getCurrentItem();
+        if (pc.isValidDoor(ci)) {
+            int day = pc.getClickedDay(ci);
 
-			Bukkit.getScheduler().runTask(this, () -> {
-				boolean isOpen = pc.isOpen(day),
-						canOpen = pc.canOpen(day);
-				this.log(Level.INFO, p.getName() + " tried opening door " + day + " [canOpen=" + canOpen + ", isOpen=" + isOpen + ", calendarGenerationDay=" + pc.genDay + "]");
-				if (isOpen) {
-					this.message(p, String.format(Messages.MSG_OPEN, day));
-				} else if (!canOpen) {
-					this.message(p, String.format(Messages.MSG_CLOSED, day));
-				} else {
-					pc.open(ci, day);
-				}
-			});
-		}
-	}
+            Bukkit.getScheduler().runTask(this, () -> {
+                boolean isOpen = pc.isOpen(day),
+                        canOpen = pc.canOpen(day);
+                this.log(Level.INFO, p.getName() + " tried opening door " + day + " [canOpen=" + canOpen + ", isOpen=" + isOpen + ", calendarGenerationDay=" + pc.genDay + "]");
+                if (isOpen) {
+                    this.message(p, String.format(Messages.MSG_OPEN, day));
+                } else if (!canOpen) {
+                    this.message(p, String.format(Messages.MSG_CLOSED, day));
+                } else {
+                    pc.open(ci, day);
+                }
+            });
+        }
+    }
 }
