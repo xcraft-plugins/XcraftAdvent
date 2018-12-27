@@ -45,13 +45,13 @@ public final class PlayerCalendar {
 	}
 
 	protected boolean isUp2Date() {
-		return this.genDay == DateChecker.getDayOfMonth();
+		return this.genDay == man.getDateChecker().getDayOfMonth();
 	}
 
 	protected void generateCalendar() {
 		this.doors.clear();
 		this.calendar.setStorageContents(FILL);
-		this.genDay = DateChecker.getDayOfMonth();
+		this.genDay = man.getDateChecker().getDayOfMonth();
 		ItemStack door;
 		ItemMeta meta;
 		for (int d = 1; d <= 24; d++) {
