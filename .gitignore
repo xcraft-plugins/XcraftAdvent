@@ -2,6 +2,9 @@ log/
 target/
 bin/
 .mvn/
+.classpath
+.project
+.settings/
 .idea/
 *.iml
 *.iws
