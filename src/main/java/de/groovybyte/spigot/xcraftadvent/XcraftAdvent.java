@@ -1,57 +1,53 @@
 package de.groovybyte.spigot.xcraftadvent;
 
+import com.google.common.collect.ClassToInstanceMap;
+import com.google.common.collect.ImmutableClassToInstanceMap;
+import com.google.common.collect.MutableClassToInstanceMap;
+import de.groovybyte.spigot.xcraftadvent.listener.CommandInterpreter;
+import de.groovybyte.spigot.xcraftadvent.listener.ConnectionListener;
+import de.groovybyte.spigot.xcraftadvent.listener.InventoryListener;
+import de.groovybyte.spigot.xcraftadvent.repository.ICalendarRepository;
 import java.io.File;
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
-import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
-import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.inventory.InventoryClickEvent;
-import org.bukkit.event.inventory.InventoryCloseEvent;
-import org.bukkit.event.inventory.InventoryType;
-import org.bukkit.event.player.PlayerJoinEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.ItemStack;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.scheduler.BukkitTask;
 
-public final class XcraftAdvent extends JavaPlugin implements Listener, CommandExecutor {
+public final class XcraftAdvent extends JavaPlugin implements IServiceProvider {
 
     public final static boolean DEBUG = true;
+	public final static String CALENDAR_COMMAND_LABEL = "adventskalender";
 
-    /* fix: give item only in gm 0 */
-    //protected final String PERM_admin_peek = "calendar.admin.showAny";
-    protected final String PERM_ownAndShow = "calendar.ownAndShow";
-    protected final String PERM_openDoors = "calendar.openDoors";
-
+	private final ClassToInstanceMap<Object> services;
+    protected Listener inventoryListener, connectionListener;
+	protected CommandExecutor calendarCommandExecutor;
     protected CalendarManager man;
-    protected final IDateChecker dateChecker;
 
     public XcraftAdvent() {
-        dateChecker = DEBUG ? new DebugDateChecker() : new DefaultDateChecker();
+		services = MutableClassToInstanceMap.create();
+		services.putInstance(IDateChecker.class, DEBUG ? new DebugDateChecker() : new DefaultDateChecker());
     }
-
-    public void log(Level level, String log) {
-        this.getLogger().log(level, log);
-    }
-
-    public void message(Player p, String s) {
-        p.sendMessage(Messages.CHAT_PREFIX + s);
-    }
-
-    public IDateChecker getDateChecker() {
-        return dateChecker;
-    }
+	
+	@Override
+	public <S> S getService(Class<? extends S> serviceType) {
+		return (S) services.getInstance(serviceType);
+	}
 
     @Override
     public void onEnable() {
+		services.putInstance(Logger.class, getLogger());
+		
         File pluginFolder = this.getDataFolder();
         if (!pluginFolder.exists()) {
             pluginFolder.mkdirs();
@@ -69,11 +65,15 @@ public final class XcraftAdvent extends JavaPlugin implements Listener, CommandE
         try {
             man.load();
         } catch (IOException e) {
-            this.log(Level.WARNING, "IO error with save-file while loading: " + e.getLocalizedMessage());
+            getLogger().log(Level.WARNING, "IO error with save-file while loading: {0}", e.getLocalizedMessage());
         }
 
-        Bukkit.getPluginManager().registerEvents(this, this);
-        this.getCommand("adventskalender").setExecutor(this);
+        inventoryListener = new InventoryListener(this);
+        connectionListener = new ConnectionListener(this);
+        getServer().getPluginManager().registerEvents(inventoryListener, this);
+        getServer().getPluginManager().registerEvents(connectionListener, this);
+		calendarCommandExecutor = new CommandInterpreter();
+        this.getCommand(CALENDAR_COMMAND_LABEL).setExecutor(calendarCommandExecutor);
     }
 
     @Override
@@ -81,153 +81,7 @@ public final class XcraftAdvent extends JavaPlugin implements Listener, CommandE
         try {
             man.save();
         } catch (IOException e) {
-            this.log(Level.WARNING, "IO error with save-file while saving: " + e.getLocalizedMessage());
-        }
-    }
-
-    @EventHandler
-    public void onPlayerJoin(PlayerJoinEvent ev) {
-        Player p = ev.getPlayer();
-        if (p.hasPermission(PERM_ownAndShow)) {
-            man.playerJoin(p).ifPresent((cal) -> {
-                if (cal.hasClosedDoors()) {
-                    Bukkit.getScheduler().runTaskLater(this, () -> {
-                        this.message(p, Messages.MSG_COMMAND_INFO);
-                        if (p.getGameMode().equals(GameMode.SURVIVAL)) {
-                            Bukkit.dispatchCommand(p, "advent");
-                        }
-                    }, 20);
-                }
-            });
-        }
-    }
-
-    @EventHandler
-    public void onPlayerQuit(PlayerQuitEvent ev) {
-        man.playerQuit(ev.getPlayer());
-    }
-
-    protected boolean opCommand(Player p, String[] args) {
-        if (args[0].equalsIgnoreCase("edit")) {
-            if (args.length == 1) {
-                Bukkit.getScheduler().runTask(this, () -> this.man.EDITOR.startEditing(p));
-            } else {
-                try {
-                    int day = Integer.parseInt(args[1]);
-                    if (day < 1 || day > 24) {
-                        throw new NumberFormatException("not a day from the calendar");
-                    }
-                    switch (args[2].toLowerCase()) {
-                        case "clear":
-                            this.man.EDITOR.clearCommands(day);
-                            break;
-                        case "add":
-                            this.man.EDITOR.addCommand(day, Arrays.asList(args).subList(3, args.length).stream().collect(Collectors.joining(" ")));
-                            break;
-                        case "test":
-                            this.man.getDoor(day).reward(p);
-                            break;
-                        default:
-                            throw new NumberFormatException("wrong usage");
-                    }
-                } catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
-                    this.message(p, "Error: " + e.getMessage());
-                    this.message(p, "use \"edit [day] clear/add/test [command]\"");
-                    return false;
-                }
-            }
-            return true;
-        }
-        return false;
-    }
-
-    @Override
-    public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-        if (args.length > 0 && args[0].equalsIgnoreCase("reload")) {
-            try {
-                man.load();
-            } catch (IOException e) {
-                this.log(Level.WARNING, "IO error with save-file while loading: " + e.getLocalizedMessage());
-            }
-            return true;
-        }
-        if (sender instanceof Player) {
-            Player p = (Player) sender;
-            if (args.length > 0 && p.isOp()) {
-                if (this.opCommand(p, args)) {
-                    return true;
-                }
-            }
-
-            if (p.hasPermission(PERM_ownAndShow)) {
-                if (!man.isActive(p)) {
-                    this.message(p, Messages.MSG_WRONG_TIME);
-                } else if (p.getGameMode().equals(GameMode.SURVIVAL)) {
-                    Bukkit.getScheduler().runTask(this, () -> p.openInventory(man.get(p).getCalendar()));
-                } else {
-                    this.message(p, Messages.MSG_WRONG_GAMEMODE);
-                }
-            } else {
-                this.message(p, Messages.MSG_MISSING_PERM);
-            }
-            return true;
-        } else {
-            sender.sendMessage("not supported");
-        }
-        return false;
-    }
-
-    @EventHandler
-    public void onInventoryClose(InventoryCloseEvent ev) {
-        Player p = (Player) ev.getPlayer();
-        Inventory ei = ev.getInventory();
-        if (ei == null || !ei.getType().equals(InventoryType.CHEST)) {
-            return;
-        }
-        if (this.man.EDITOR.isEditing(p)) {
-            this.man.EDITOR.stopEditing();
-        }
-    }
-
-    @EventHandler
-    public void onInventoryClick(InventoryClickEvent ev) {
-        Player p = (Player) ev.getWhoClicked();
-        Inventory ei = ev.getClickedInventory();
-        if (ei == null || !ei.getType().equals(InventoryType.CHEST)) { // || ei.getHolder() == null || !ei.getHolder().equals(p)
-            return;
-        }
-        if (p.isOp() && this.man.EDITOR.isEditing(p)) {
-            this.man.EDITOR.edit(ev);
-            return;
-        }
-
-        PlayerCalendar pc = man.get(p);
-        if (pc == null || !pc.isCalendar(ev.getInventory())) {
-            return;
-        }
-
-        ev.setCancelled(true);
-        if (!p.hasPermission(PERM_openDoors)) {
-            this.message(p, Messages.MSG_MISSING_PERM);
-            return;
-        }
-
-        ItemStack ci = ev.getCurrentItem();
-        if (pc.isValidDoor(ci)) {
-            int day = pc.getClickedDay(ci);
-
-            Bukkit.getScheduler().runTask(this, () -> {
-                boolean isOpen = pc.isOpen(day),
-                        canOpen = pc.canOpen(day);
-                this.log(Level.INFO, p.getName() + " tried opening door " + day + " [canOpen=" + canOpen + ", isOpen=" + isOpen + ", calendarGenerationDay=" + pc.genDay + "]");
-                if (isOpen) {
-                    this.message(p, String.format(Messages.MSG_OPEN, day));
-                } else if (!canOpen) {
-                    this.message(p, String.format(Messages.MSG_CLOSED, day));
-                } else {
-                    pc.open(ci, day);
-                }
-            });
+            getLogger().log(Level.WARNING, "IO error with save-file while saving: {0}", e.getLocalizedMessage());
         }
     }
 }

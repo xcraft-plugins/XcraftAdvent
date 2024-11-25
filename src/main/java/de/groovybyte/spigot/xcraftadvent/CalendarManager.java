@@ -1,5 +1,6 @@
 package de.groovybyte.spigot.xcraftadvent;
 
+import de.groovybyte.spigot.xcraftadvent.entity.Door;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -11,7 +12,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
-import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -32,86 +32,86 @@ public class CalendarManager {
         this.plugin = plugin;
         this.cfgFile = cfgFile;
         this.saveFile = saveFile;
-        this.EDITOR = new CalendarEditor(plugin, this);
+        EDITOR = new CalendarEditor(plugin, this);
 
-        this.doors = new Door[24];
+        doors = new Door[24];
         for (int day = 0; day < 24; day++) {
-            this.doors[day] = new Door(this.plugin, day + 1);
+            doors[day] = new Door(plugin, day + 1);
         }
     }
 
     public Door getDoor(int day) {
-        return this.doors[day - 1];
+        return doors[day - 1];
     }
 
     public void load() throws IOException {
         long t1 = System.currentTimeMillis();
-        this.data.clear();
-        this.config = YamlConfiguration.loadConfiguration(this.cfgFile);
+        data.clear();
+        config = YamlConfiguration.loadConfiguration(cfgFile);
         for (int i = 0; i < 24; i++) {
-            this.doors[i].update(config);
+            doors[i].update(config);
         }
-        try (BufferedReader br = new BufferedReader(new FileReader(this.saveFile))) {
+        try (BufferedReader br = new BufferedReader(new FileReader(saveFile))) {
             String line;
             while ((line = br.readLine()) != null) {
                 int split = line.indexOf(':');
                 if (line.isEmpty() || split == -1) {
                     continue;
                 }
-                this.data.put(
+                data.put(
                         UUID.fromString(line.substring(0, split++)),
                         Integer.parseUnsignedInt(line.substring(split), 16)
                 );
             }
         }
-        this.plugin.log(Level.INFO, "Loaded (" + this.data.size() + " players) in " + (System.currentTimeMillis() - t1) + "ms");
-        this.activePlayers.replaceAll((UUID uuid, PlayerCalendar cal) -> getNewCalendar(cal.getPlayer()));
+        plugin.log(Level.INFO, "Loaded (" + data.size() + " players) in " + (System.currentTimeMillis() - t1) + "ms");
+        activePlayers.replaceAll((UUID uuid, PlayerCalendar cal) -> getNewCalendar(cal.getPlayer()));
         //in the case that there is a new player in the data, he will not be added to the active players - use rejoin
     }
 
     public void save() throws IOException {
         long t1 = System.currentTimeMillis();
-        this.activePlayers.forEach((UUID pid, PlayerCalendar cal) -> this.data.put(pid, cal.getOpenStatus()));
-        try (FileWriter fw = new FileWriter(this.saveFile, false)) {
-            for (Map.Entry<UUID, Integer> entry : this.data.entrySet()) {
+        activePlayers.forEach((UUID pid, PlayerCalendar cal) -> data.put(pid, cal.getOpenStatus()));
+        try (FileWriter fw = new FileWriter(saveFile, false)) {
+            for (Map.Entry<UUID, Integer> entry : data.entrySet()) {
                 fw.write(String.format("%s:%x\n",
                         entry.getKey().toString(),
                         entry.getValue()
                 ));
             }
         }
-        this.plugin.log(Level.INFO, "Saved (" + this.data.size() + " players) in " + (System.currentTimeMillis() - t1) + "ms");
+        plugin.log(Level.INFO, "Saved (" + data.size() + " players) in " + (System.currentTimeMillis() - t1) + "ms");
     }
 
     protected void silentSave() {
-        Bukkit.getScheduler().runTaskAsynchronously(this.plugin, () -> {
+        plugin.runAsync(() -> {
             try {
-                this.save();
+                save();
             } catch (IOException e) {
             }
         });
     }
 
     public boolean isActive(Player p) {
-        return this.activePlayers.containsKey(p.getUniqueId());
+        return activePlayers.containsKey(p.getUniqueId());
     }
 
     public PlayerCalendar get(Player p) {
-        return this.activePlayers.get(p.getUniqueId());
+        return activePlayers.get(p.getUniqueId());
     }
     
     public IDateChecker getDateChecker() {
         return plugin.getDateChecker();
     }
 
-    public Optional<PlayerCalendar> playerJoin(Player p) {
+    public Optional<PlayerCalendar> connectCalendar(Player p) {
         if (getDateChecker().isCalendarTime()) {
             UUID pid = p.getUniqueId();
-            if (this.activePlayers.containsKey(pid)) {
-                return Optional.of(this.activePlayers.get(pid));
-            } else if (this.data.containsKey(pid) || getDateChecker().canCreateNewCalendar()) {
+            if (activePlayers.containsKey(pid)) {
+                return Optional.of(activePlayers.get(pid));
+            } else if (data.containsKey(pid) || getDateChecker().canCreateNewCalendar()) {
                 PlayerCalendar calendar = getNewCalendar(p);
-                this.activePlayers.put(pid, calendar);
+                activePlayers.put(pid, calendar);
                 return Optional.of(calendar);
             }
         }
@@ -119,14 +119,14 @@ public class CalendarManager {
     }
 
     public PlayerCalendar getNewCalendar(Player p) {
-        return new PlayerCalendar(this, p, this.data.getOrDefault(p.getUniqueId(), 0));
+        return new PlayerCalendar(this, p, data.getOrDefault(p.getUniqueId(), 0));
     }
 
-    public void playerQuit(Player p) {
+    public void disconnectCalendar(Player p) {
         UUID pid = p.getUniqueId();
-        if (this.activePlayers.containsKey(pid)) {
-            this.data.put(pid, this.activePlayers.remove(pid).getOpenStatus());
-            this.silentSave();
+        if (activePlayers.containsKey(pid)) {
+            data.put(pid, activePlayers.remove(pid).getOpenStatus());
+            silentSave();
         }
     }
 }

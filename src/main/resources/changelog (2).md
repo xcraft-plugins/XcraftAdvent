@@ -1,20 +1,22 @@
+# Changelog:
 
-Changelog:
-
-todo:
+## todo:
  - player status checking/listing
 
-v 1.3.1
+## 1.4.0
+ - fixed maven project
+
+## 1.3.1
  - added operation delay debug messages (save/load)
 
-v 1.3.0
+## 1.3.0
  - added command "/advent edit <day> test"
 
-v 1.2.0
+## 1.2.0
  - maven projekt now
  - bugfix: after midnight the players can open doors multiple times
 
-v 1.1.0
+## 1.1.0
  - enhancement: calendar will only show on join if there is a door to open
  - enhancement: calendar will only show if in survival gamemode
  - enhancement: console can now use /advent reload
@@ -22,10 +24,10 @@ v 1.1.0
  - change: saving a single players status won't update every others status anymore
  - bugfix: NPE after /advent reload
 
-v 1.0.1
+## 1.0.1
  - change: changed name from XCraftAdvent to XcraftAdvent
  - bugfix: clicking on opened door won't show error before rejoin (calendar reload)
  - bugfix: date won't be updated at 0:00 (calendar instance has fixed time)
 
-v 1.0.0
- - 
+## 1.0.0
+ - initial version

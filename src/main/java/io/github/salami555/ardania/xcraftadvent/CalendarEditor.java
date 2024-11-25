@@ -1,12 +1,12 @@
-package de.groovybyte.spigot.xcraftadvent;
+package io.github.salami555.ardania.xcraftadvent;
 
-import de.groovybyte.spigot.xcraftadvent.entity.Door;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -29,26 +29,26 @@ public class CalendarEditor {
     public CalendarEditor(XcraftAdvent plugin, CalendarManager man) {
         this.plugin = plugin;
         this.man = man;
-        this.inv = plugin.getServer().createInventory(null, InventoryType.CHEST, Messages.INV_FILL);
+        this.inv = Bukkit.createInventory(null, InventoryType.CHEST, Messages.INV_FILL);
     }
 
-    protected Door getDoor(int day) {
+    protected final Door getDoor(int day) {
         return this.man.doors[day - 1];
     }
 
-    protected boolean inSelectionInv() {
+    protected final boolean inSelectionInv() {
         return editingDay == 0;
     }
 
-    protected void setSelectionInv() {
-        ItemStack[] content = new ItemStack[24];
+    protected final void setSelectionInv() {
+        final ItemStack[] content = new ItemStack[24];
         ItemStack item;
         ItemMeta meta;
         Door door;
         for (int i = 1; i <= 24; i++) {
             door = this.getDoor(i);
 
-            item = new ItemStack(door.isEmpty() ? Material.COBWEB : Material.CHEST, 1);
+            item = new ItemStack(door.isEmpty() ? Material.WEB : Material.CHEST, 1);
             meta = item.getItemMeta();
 
             List<String> l = new ArrayList<>();
@@ -56,14 +56,14 @@ public class CalendarEditor {
                 l.add("leer");
             } else {
                 if (door.hasItems()) {
-                    l.add("enthält: " + Arrays
+                    l.add("enthaelt: " + Arrays
                             .stream(door.getItems())
                             .limit(5)
                             .map((ItemStack is) -> is.getType().toString())
                             .collect(Collectors.joining(", ")));
                 }
                 if (door.hasCommands()) {
-                    l.add("führt " + door.getCommands().length + " Commands aus");
+                    l.add("fuehrt " + door.getCommands().length + " Commands aus");
                 }
             }
             meta.setDisplayName(String.format(Messages.ITEM_EDIT_DAY, Integer.toString(i)));
@@ -76,14 +76,14 @@ public class CalendarEditor {
         this.editingDay = 0;
     }
 
-    protected void setDayInv(int day) {
+    protected final void setDayInv(int day) {
         Door d = this.getDoor(day);
         this.inv.setContents(d.getItems());
         this.editingDay = day;
     }
 
-    public void clearCommands(int day) {
-        this.man.config.set("rewards.door" + day + ".commands", null);
+    public final void clearCommands(int day) {
+        this.man.config.set("rewards.door" + day + ".commands", (List<String>) new ArrayList<String>());
         this.man.doors[day - 1].update(this.man.config);
         try {
             this.man.config.save(this.man.cfgFile);
@@ -92,7 +92,7 @@ public class CalendarEditor {
         }
     }
 
-    public void addCommand(int day, String cmd) {
+    public final void addCommand(int day, String cmd) {
         cmd = cmd.trim();
         if (cmd.isEmpty()) {
             return;
@@ -108,7 +108,7 @@ public class CalendarEditor {
         }
     }
 
-    public void startEditing(Player player) {
+    public final void startEditing(Player player) {
         if (this.player != null) {
             player.sendMessage("editing in progress");
             return;
@@ -118,7 +118,7 @@ public class CalendarEditor {
         this.player.openInventory(this.inv);
     }
 
-    public void edit(InventoryClickEvent ev) {
+    public final void edit(InventoryClickEvent ev) {
         if (this.inSelectionInv()) {
             ev.setCancelled(true);
             this.setDayInv(ev.getRawSlot() + 1);
@@ -127,11 +127,11 @@ public class CalendarEditor {
         }
     }
 
-    public boolean isEditing(Player player) {
+    public final boolean isEditing(Player player) {
         return (this.player == null) ? false : this.player.equals(player);
     }
 
-    public void stopEditing() {
+    public final void stopEditing() {
         if (!this.inSelectionInv()) {
             List<ItemStack> items = Arrays
                     .asList(this.inv.getContents())

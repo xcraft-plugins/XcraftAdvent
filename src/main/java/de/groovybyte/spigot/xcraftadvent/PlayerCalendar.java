@@ -4,7 +4,6 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -18,14 +17,14 @@ public final class PlayerCalendar {
 	protected final Player player;
 	protected final Map<ItemStack, Integer> doors = new HashMap<>();
 	protected final Inventory calendar;
-	protected int genDay;
+	public int genDay;
 	protected int open;
 
 	public PlayerCalendar(CalendarManager man, Player player, int openStatus) {
 		this.man = man;
 		this.player = player;
 		this.open = openStatus;
-		this.calendar = Bukkit.createInventory(player, 54, Messages.INV_TITLE);
+		this.calendar = man.plugin.getServer().createInventory(player, 54, Messages.INV_TITLE);
 		this.calendar.setMaxStackSize(1);
 		generateCalendar();
 	}
