@@ -3,6 +3,9 @@
 ## todo:
  - player status checking/listing
 
+## 1.5.0
+ - move project to Gradle from Maven
+
 ## 1.4.0
  - fixed maven project
 
@@ -30,4 +33,4 @@
  - bugfix: date won't be updated at 0:00 (calendar instance has fixed time)
 
 ## 1.0.0
- - initial version
+ - initial plugin

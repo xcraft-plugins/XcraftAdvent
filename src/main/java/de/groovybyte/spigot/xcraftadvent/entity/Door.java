@@ -1,5 +1,7 @@
-package de.groovybyte.spigot.xcraftadvent;
+package de.groovybyte.spigot.xcraftadvent.entity;
 
+import de.groovybyte.spigot.xcraftadvent.Messages;
+import de.groovybyte.spigot.xcraftadvent.XcraftAdvent;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;

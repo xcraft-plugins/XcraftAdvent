@@ -1,12 +1,12 @@
 package de.groovybyte.spigot.xcraftadvent;
 
+import de.groovybyte.spigot.xcraftadvent.entity.Door;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
-import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -29,7 +29,7 @@ public class CalendarEditor {
     public CalendarEditor(XcraftAdvent plugin, CalendarManager man) {
         this.plugin = plugin;
         this.man = man;
-        this.inv = Bukkit.createInventory(null, InventoryType.CHEST, Messages.INV_FILL);
+        this.inv = plugin.getServer().createInventory(null, InventoryType.CHEST, Messages.INV_FILL);
     }
 
     protected Door getDoor(int day) {
