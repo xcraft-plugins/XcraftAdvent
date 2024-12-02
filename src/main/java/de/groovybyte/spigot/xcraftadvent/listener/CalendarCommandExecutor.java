@@ -1,10 +1,10 @@
 package de.groovybyte.spigot.xcraftadvent.listener;
 
+import de.groovybyte.spigot.xcraftadvent.IServiceProvider;
 import de.groovybyte.spigot.xcraftadvent.Messages;
 import de.groovybyte.spigot.xcraftadvent.Permissions;
-import java.io.IOException;
 import java.util.Arrays;
-import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import org.bukkit.GameMode;
 import org.bukkit.command.Command;
@@ -13,6 +13,12 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
 public class CalendarCommandExecutor implements CommandExecutor {
+
+	private final Logger logger;
+
+	public CalendarCommandExecutor(IServiceProvider inject) {
+		this.logger = inject.getService(Logger.class);
+	}
 
 //    public BukkitTask runAsync(Runnable task) {
 //        return getServer().getScheduler().runTaskAsynchronously(this, task);

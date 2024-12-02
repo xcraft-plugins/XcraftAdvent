@@ -1,9 +1,12 @@
-package de.groovybyte.spigot.xcraftadvent;
+package de.groovybyte.spigot.xcraftadvent.datechecker;
 
 import com.google.common.collect.Range;
+
 import java.time.Clock;
 import java.time.Month;
 import java.time.MonthDay;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 public class DefaultDateChecker implements IDateChecker {
 
@@ -18,7 +21,7 @@ public class DefaultDateChecker implements IDateChecker {
     public DefaultDateChecker(Clock clock) {
         this.clock = clock;
     }
-    
+
     private MonthDay currentMonthDay() {
         return MonthDay.now(clock);
     }
@@ -36,7 +39,7 @@ public class DefaultDateChecker implements IDateChecker {
     public boolean isCalendarTime() {
         return isDecember();
     }
-    
+
     @Override
     public boolean canCreateNewCalendar() {
         return isCalendarTime() && calendarCreationDates.contains(getDayOfMonth());
@@ -45,5 +48,14 @@ public class DefaultDateChecker implements IDateChecker {
     @Override
     public boolean canOpenExistingCalendar() {
         return isCalendarTime() && calendarOpeningDates.contains(getDayOfMonth());
+    }
+
+    public String toString() {
+        return "DefaultDateChecker{dateTime=%s, dayOfMonth=%d, isCalendarTime=%b, canCreateNewCalendar=%b, canOpenExistingCalendar=%b}"
+            .formatted(
+                DateTimeFormatter.ISO_DATE_TIME.format(ZonedDateTime.now(this.clock)),
+                getDayOfMonth(), isCalendarTime(),
+                canCreateNewCalendar(), canOpenExistingCalendar()
+            );
     }
 }

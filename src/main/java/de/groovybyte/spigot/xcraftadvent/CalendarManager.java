@@ -1,5 +1,6 @@
 package de.groovybyte.spigot.xcraftadvent;
 
+import de.groovybyte.spigot.xcraftadvent.datechecker.IDateChecker;
 import de.groovybyte.spigot.xcraftadvent.entity.Door;
 import java.io.BufferedReader;
 import java.io.File;
@@ -12,25 +13,32 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
+import java.util.logging.Logger;
+
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 
 public class CalendarManager {
 
+    private final Logger logger;
+
     public final CalendarEditor EDITOR;
 
-    protected final XcraftAdvent plugin;
-    protected final File cfgFile, saveFile;
+    protected final File configFile, saveFile;
     protected final Map<UUID, Integer> data = Collections.synchronizedMap(new HashMap<>(128));
     protected final Map<UUID, PlayerCalendar> activePlayers = new HashMap<>(32);
 
     protected FileConfiguration config;
     protected final Door[] doors;
 
-    public CalendarManager(XcraftAdvent plugin, File cfgFile, File saveFile) {
-        this.plugin = plugin;
-        this.cfgFile = cfgFile;
+    public CalendarManager(
+        IServiceProvider inject,
+        File configFile,
+        File saveFile
+    ) {
+        this.logger = inject.getService(Logger.class);
+        this.configFile = configFile;
         this.saveFile = saveFile;
         EDITOR = new CalendarEditor(plugin, this);
 
@@ -47,7 +55,7 @@ public class CalendarManager {
     public void load() throws IOException {
         long t1 = System.currentTimeMillis();
         data.clear();
-        config = YamlConfiguration.loadConfiguration(cfgFile);
+        config = YamlConfiguration.loadConfiguration(configFile);
         for (int i = 0; i < 24; i++) {
             doors[i].update(config);
         }
@@ -64,7 +72,7 @@ public class CalendarManager {
                 );
             }
         }
-        plugin.log(Level.INFO, "Loaded (" + data.size() + " players) in " + (System.currentTimeMillis() - t1) + "ms");
+        logger.log(Level.INFO, "Loaded (" + data.size() + " players) in " + (System.currentTimeMillis() - t1) + "ms");
         activePlayers.replaceAll((UUID uuid, PlayerCalendar cal) -> getNewCalendar(cal.getPlayer()));
         //in the case that there is a new player in the data, he will not be added to the active players - use rejoin
     }
@@ -80,7 +88,7 @@ public class CalendarManager {
                 ));
             }
         }
-        plugin.log(Level.INFO, "Saved (" + data.size() + " players) in " + (System.currentTimeMillis() - t1) + "ms");
+        logger.log(Level.INFO, "Saved (" + data.size() + " players) in " + (System.currentTimeMillis() - t1) + "ms");
     }
 
     protected void silentSave() {

@@ -20,14 +20,14 @@ public class CalendarEditor {
     public final static String META_KEY = "CalendarEditing";
     //p.setMetadata("calendarEditing", new FixedMetadataValue(this.plugin, true));
 
-    protected final XcraftAdvent plugin;
+//    protected final XcraftAdvent plugin;
     protected final CalendarManager man;
     protected Player player = null;
     protected final Inventory inv;
     protected int editingDay;
 
     public CalendarEditor(XcraftAdvent plugin, CalendarManager man) {
-        this.plugin = plugin;
+//        this.plugin = plugin;
         this.man = man;
         this.inv = plugin.getServer().createInventory(null, InventoryType.CHEST, Messages.INV_FILL);
     }
@@ -86,7 +86,7 @@ public class CalendarEditor {
         this.man.config.set("rewards.door" + day + ".commands", null);
         this.man.doors[day - 1].update(this.man.config);
         try {
-            this.man.config.save(this.man.cfgFile);
+            this.man.config.save(this.man.configFile);
         } catch (IOException ex) {
             this.plugin.log(Level.WARNING, "config io error");
         }
@@ -102,7 +102,7 @@ public class CalendarEditor {
         this.man.config.set("rewards.door" + day + ".commands", tmp);
         this.man.doors[day - 1].update(this.man.config);
         try {
-            this.man.config.save(this.man.cfgFile);
+            this.man.config.save(this.man.configFile);
         } catch (IOException ex) {
             this.plugin.log(Level.WARNING, "config io error");
         }
@@ -145,7 +145,7 @@ public class CalendarEditor {
             this.man.doors[this.editingDay - 1].update(this.man.config);
 
             try {
-                this.man.config.save(this.man.cfgFile);
+                this.man.config.save(this.man.configFile);
             } catch (IOException ex) {
                 this.plugin.log(Level.WARNING, "config io error");
             }
