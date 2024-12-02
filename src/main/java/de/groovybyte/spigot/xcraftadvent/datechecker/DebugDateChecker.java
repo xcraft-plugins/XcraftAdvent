@@ -1,4 +1,4 @@
-package de.groovybyte.spigot.xcraftadvent;
+package de.groovybyte.spigot.xcraftadvent.datechecker;
 
 import com.google.common.base.Preconditions;
 import com.google.common.collect.Range;
@@ -21,7 +21,7 @@ public class DebugDateChecker implements IDateChecker {
     public boolean isCalendarTime() {
         return true;
     }
-    
+
     @Override
     public boolean canCreateNewCalendar() {
         return true;
@@ -30,5 +30,9 @@ public class DebugDateChecker implements IDateChecker {
     @Override
     public boolean canOpenExistingCalendar() {
         return true;
+    }
+
+    public String toString() {
+        return "DebugDateChecker{dayOfMonth=%d}".formatted(dayOfMonth);
     }
 }
