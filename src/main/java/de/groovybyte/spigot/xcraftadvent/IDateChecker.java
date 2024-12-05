@@ -1,12 +1,11 @@
 package de.groovybyte.spigot.xcraftadvent;
 
 public interface IDateChecker {
+   int getDayOfMonth();
 
-    public int getDayOfMonth();
+   boolean isCalendarTime();
 
-    public boolean isCalendarTime();
-    
-    public boolean canCreateNewCalendar();
+   boolean canCreateNewCalendar();
 
-    public boolean canOpenExistingCalendar();
+   boolean canOpenExistingCalendar();
 }
