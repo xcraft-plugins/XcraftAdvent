@@ -61,7 +61,10 @@ public final class XcraftAdvent extends JavaPlugin implements Listener, CommandE
          pluginFolder.mkdirs();
       }
 
-      this.man = new CalendarManager(this, new File(pluginFolder, "calendar.cfg"), new File(pluginFolder, "players.data"));
+      this.man = new CalendarManager(this,
+          new File(pluginFolder, "calendar.cfg"),
+          new File(pluginFolder, "players.data")
+      );
       this.getLogger().info(this.dateChecker.toString());
 
       try {

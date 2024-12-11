@@ -63,7 +63,7 @@ public class CalendarManager {
       for(int day = 1; day <= 24; ++day) {
          Door door = this.doors[day - 1];
          door.update(this.config);
-         List<Location> locations = this.config.getList("rewards.door" + day + ".locations");
+         List<Location> locations = (List<Location>) this.config.getList("rewards.door" + day + ".locations");
          if (locations != null) {
             Iterator var7 = locations.iterator();
 
