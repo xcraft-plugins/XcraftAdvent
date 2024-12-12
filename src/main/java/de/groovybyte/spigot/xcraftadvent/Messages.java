@@ -8,8 +8,10 @@ import org.bukkit.command.CommandSender;
 public final class Messages {
    public static final String CHAT_PREFIX;
    private static final BaseComponent[] PREFIX;
+
    public static final String INV_TITLE = "Adventskalender";
    public static final String INV_FILL = "Türchenfüllen";
+
    public static final String ITEM_NAME = "Tag %s";
    public static final String ITEM_EDIT_DAY = "Türchen %s";
    public static final String ITEM_OPENED = "Bereits geöffnet";
@@ -17,6 +19,7 @@ public final class Messages {
    public static final String ITEM_FUTURE = "Überraschung in %s Tag%s";
    public static final String ITEM_24 = "Weihnachten in %s Tag%s";
    public static final String ITEM_24_READY = "Frohe Weihnachten!";
+
    public static final String MSG_OPEN = "Du hast das Türchen Nummer %d bereits geöffnet!";
    public static final String MSG_CLOSED = "Du darfst das Türchen Nummer %d noch nicht öffnen!";
    public static final String MSG_OPENING = "Du hast Türchen Nummer %d geöffnet!";
