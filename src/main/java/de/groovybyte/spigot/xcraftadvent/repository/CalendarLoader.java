@@ -1,7 +1,7 @@
 package de.groovybyte.spigot.xcraftadvent.repository;
 
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
-import de.groovybyte.spigot.xcraftadvent.ICalendar;
+import de.groovybyte.spigot.xcraftadvent.entity.ICalendar;
 import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
