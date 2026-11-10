@@ -25,9 +25,12 @@ readable names (e.g. `p`→`player`, `ev`→`event`, `iv`/`ei`→`*Inventory`,
 
 ### Remaining / follow-up
 
-- **Spigot 1.21 → 26.3 API review:** `build.gradle.kts` still declares
-  `apiVersion("1.21")` and `buildTools { versions("1.21") }`; both need
-  checking against what 26.3 expects (changelog research in progress).
+- **Spigot 1.21 → 26.3 API review — done.** Result documented in
+  `SPIGOT-API-CHANGES-1.21-TO-26.3.md`: nothing in the plugin's API usage
+  is deprecated/removed in 26.3 except `TextComponent.fromLegacyText`
+  (fixed in `be663dc`); `build.gradle.kts` updated to
+  `apiVersion("26.3")` / `buildTools { versions("26.3") }`. A smoke test
+  on a real 26.3 server is still recommended before release.
 - **Branch cleanup:** feature branches `v2-rewrite`, `config-utils`,
   `layered-architecture`, `service-provider` (see overview in chat);
   nothing further needed from them.

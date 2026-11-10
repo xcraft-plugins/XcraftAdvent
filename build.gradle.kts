@@ -58,7 +58,9 @@ tasks {
             description("Adventskalender-Plugin")
 
             main("de.groovybyte.spigot.xcraftadvent.XcraftAdvent")
-            apiVersion("1.21")
+            // valid api-versions are 1.13 up to the running server version
+            // (see the PaperMC plugin.yml docs); 26.3 matches the spigot-api
+            apiVersion("26.3")
 
             command {
                 named(PluginConstants.COMMAND_LABEL)
@@ -91,7 +93,7 @@ tasks {
     }
 
     buildTools {
-        versions("1.21")
+        versions("26.3")
         workDir = projectDir.resolve("server/")
     }
 
