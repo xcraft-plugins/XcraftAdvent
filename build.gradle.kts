@@ -1,12 +1,12 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
+import org.gradle.api.tasks.testing.logging.TestLogEvent
 import fr.il_totore.manadrop.Permission
 
 plugins {
     java
-    id("fr.il_totore.manadrop") version "0.4.3"
+    alias(libs.plugins.spigot.manadrop)
 
-    id("com.github.ben-manes.versions") version "0.51.0"
-    id("se.ascp.gradle.gradle-versions-filter") version "0.1.16"
+    alias(libs.plugins.versions.updater)
     idea
 }
 
@@ -16,34 +16,24 @@ version = "1.5.0"
 repositories {
     mavenCentral()
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
-    /*
-    As Spigot-API depends on the BungeeCord ChatComponent-API,
-    we need to add the Sonatype OSS repository, as Gradle,
-    in comparison to maven, doesn't want to understand the ~/.m2
-    directory unless added using mavenLocal(). Maven usually just gets
-    it from there, as most people have run the BuildTools at least once.
-    This is therefore not needed if you're using the full Spigot/CraftBukkit,
-    or if you're using the Bukkit API.
-    */
-    maven("https://oss.sonatype.org/content/repositories/snapshots")
-    maven("https://oss.sonatype.org/content/repositories/central")
     mavenLocal()
 }
 
 dependencies {
-    compileOnly("org.spigotmc:spigot-api:1.21.1-R0.1-SNAPSHOT")
+    compileOnly(libs.spigot)
 
-    implementation("com.google.guava:guava:33.3.1-jre")
+    compileOnly(libs.google.guava)
+    compileOnly(libs.apache.commons.lang3)
 
-    val junitVersion = "5.11.3"
-    testImplementation(platform("org.junit:junit-bom:$junitVersion"))
-    testImplementation("org.junit.jupiter:junit-jupiter")
+    testImplementation(platform(libs.junit.platform))
+    testImplementation(libs.junit.jupiter)
+    testRuntimeOnly(libs.junit.launcher)
 }
 
 tasks {
     java {
         toolchain {
-            languageVersion = JavaLanguageVersion.of(21)
+            languageVersion = JavaLanguageVersion.of(25)
         }
     }
 
@@ -90,17 +80,19 @@ tasks {
 
     withType<DependencyUpdatesTask> {
         gradleReleaseChannel = "current"
-        versionsFilter {
-            exclusiveQualifiers.addAll("ea", "alpha", "beta", "b", "Final", "RELEASE", "RC", "RC\\d+")
-        }
     }
 
     test {
-        enableAssertions = true
+        useJUnitPlatform()
+
         testLogging {
             showStandardStreams = true
+            events(
+                TestLogEvent.PASSED,
+                TestLogEvent.SKIPPED,
+                TestLogEvent.FAILED
+            )
         }
-        useJUnitPlatform()
     }
 }
 
