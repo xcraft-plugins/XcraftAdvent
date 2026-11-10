@@ -25,6 +25,9 @@ dependencies {
     compileOnly(libs.google.guava)
     compileOnly(libs.apache.commons.lang3)
 
+    // spigot is compileOnly for the plugin jar, but the tests need the API
+    testImplementation(libs.spigot)
+
     testImplementation(platform(libs.junit.platform))
     testImplementation(libs.junit.jupiter)
     testRuntimeOnly(libs.junit.launcher)
@@ -50,23 +53,25 @@ tasks {
                 aliases("xmas", "advent")
                 description("Öffnet den Adventskalender")
                 usage("/advent")
-                permission("calender.ownAndShow")
+                // opening the calendar additionally requires calendar.own;
+                // both are checked at runtime in CalendarCommandExecutor
+                permission("calendar.show")
             }
 
             permission {
-                named("calendar.admin.showAny")
-                description("Benötigt, um fremde Adventskalenders anzuzeigen")
-                defaultType(Permission.DefaultType.GRANT_OP)
-            }
-
-            permission {
-                named("calendar.ownAndShow")
-                description("Benötigt, um Adventskalenders zu besitzen und anzuzeigen")
+                named("calendar.own")
+                description("Benötigt, um einen Adventskalender zu besitzen")
                 defaultType(Permission.DefaultType.GRANT_PLAYER)
             }
 
             permission {
-                named("calendar.openDoors")
+                named("calendar.show")
+                description("Benötigt, um den Adventskalender anzuzeigen")
+                defaultType(Permission.DefaultType.GRANT_PLAYER)
+            }
+
+            permission {
+                named("calendar.doors.open")
                 description("Ermöglicht das Öffnen von Türchen")
                 defaultType(Permission.DefaultType.GRANT_OP)
             }
