@@ -1,6 +1,7 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import fr.il_totore.manadrop.Permission
+import de.groovybyte.spigot.xcraftadvent.PluginConstants
 
 plugins {
     java
@@ -17,6 +18,17 @@ repositories {
     mavenCentral()
     maven("https://hub.spigotmc.org/nexus/content/repositories/snapshots/")
     mavenLocal()
+}
+
+// The shared command/permission constants live in buildSrc so this build
+// script can reference them; adding the same source directory to the main
+// source set compiles the identical class into the plugin jar as well.
+sourceSets {
+    main {
+        java {
+            srcDir("buildSrc/src/main/java")
+        }
+    }
 }
 
 dependencies {
@@ -49,30 +61,30 @@ tasks {
             apiVersion("1.21")
 
             command {
-                named("adventskalender")
-                aliases("xmas", "advent")
-                description("Öffnet den Adventskalender")
-                usage("/advent")
+                named(PluginConstants.COMMAND_LABEL)
+                aliases(*PluginConstants.COMMAND_ALIASES)
+                description(PluginConstants.COMMAND_DESCRIPTION)
+                usage(PluginConstants.COMMAND_USAGE)
                 // opening the calendar additionally requires calendar.own;
                 // both are checked at runtime in CalendarCommandExecutor
-                permission("calendar.show")
+                permission(PluginConstants.PERMISSION_SHOW_CALENDAR)
             }
 
             permission {
-                named("calendar.own")
-                description("Benötigt, um einen Adventskalender zu besitzen")
+                named(PluginConstants.PERMISSION_OWN_CALENDAR)
+                description(PluginConstants.PERMISSION_OWN_CALENDAR_DESCRIPTION)
                 defaultType(Permission.DefaultType.GRANT_PLAYER)
             }
 
             permission {
-                named("calendar.show")
-                description("Benötigt, um den Adventskalender anzuzeigen")
+                named(PluginConstants.PERMISSION_SHOW_CALENDAR)
+                description(PluginConstants.PERMISSION_SHOW_CALENDAR_DESCRIPTION)
                 defaultType(Permission.DefaultType.GRANT_PLAYER)
             }
 
             permission {
-                named("calendar.doors.open")
-                description("Ermöglicht das Öffnen von Türchen")
+                named(PluginConstants.PERMISSION_OPEN_CALENDAR_DOORS)
+                description(PluginConstants.PERMISSION_OPEN_CALENDAR_DOORS_DESCRIPTION)
                 defaultType(Permission.DefaultType.GRANT_OP)
             }
         }

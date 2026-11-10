@@ -18,7 +18,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 public final class XcraftAdvent extends JavaPlugin implements IServiceProvider {
 
     public final static boolean DEBUG = true;
-    public final static String CALENDAR_COMMAND_LABEL = "adventskalender";
+    public final static String CALENDAR_COMMAND_LABEL = PluginConstants.COMMAND_LABEL;
 
     private final ClassToInstanceMap<Object> services = MutableClassToInstanceMap.create();
     protected CalendarManager calendarManager;
