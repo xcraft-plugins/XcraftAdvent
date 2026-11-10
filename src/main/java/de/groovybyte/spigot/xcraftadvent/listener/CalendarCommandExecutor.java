@@ -1,5 +1,6 @@
 package de.groovybyte.spigot.xcraftadvent.listener;
 
+import de.groovybyte.spigot.xcraftadvent.CalendarManager;
 import de.groovybyte.spigot.xcraftadvent.Messages;
 import de.groovybyte.spigot.xcraftadvent.Permissions;
 import java.io.IOException;
@@ -11,25 +12,36 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 
 public class CalendarCommandExecutor implements CommandExecutor {
 
-//    public BukkitTask runAsync(Runnable task) {
-//        return getServer().getScheduler().runTaskAsynchronously(this, task);
-//    }
-//    
-//    public BukkitTask runSynced(Runnable task) {
-//        return getServer().getScheduler().runTask(this, task);
-//    }
-//	
-//	public <T> CompletableFuture<T> executeAsync(Supplier<T> task) {
-//		CompletableFuture<T>.
-//	}
-	
-	protected boolean opCommand(Player p, String[] args) {
+	protected final CalendarManager calendarManager;
+	protected final JavaPlugin plugin;
+
+	public CalendarCommandExecutor(CalendarManager calendarManager, JavaPlugin plugin) {
+		this.calendarManager = calendarManager;
+		this.plugin = plugin;
+	}
+
+	/**
+	 * Schedules the task for the next server tick.
+	 */
+	protected void runSynced(Runnable task) {
+		this.plugin.getServer().getScheduler().runTask(this.plugin, task);
+	}
+
+	/**
+	 * Sends the player a chat message with the standard plugin prefix.
+	 */
+	protected void message(Player player, String text) {
+		Messages.send(player, text);
+	}
+
+	protected boolean opCommand(Player player, String[] args) {
 		if (args[0].equalsIgnoreCase("edit")) {
 			if (args.length == 1) {
-				runSynced(() -> this.man.EDITOR.startEditing(p));
+				runSynced(() -> this.calendarManager.EDITOR.startEditing(player));
 			} else {
 				try {
 					int day = Integer.parseInt(args[1]);
@@ -38,20 +50,20 @@ public class CalendarCommandExecutor implements CommandExecutor {
 					}
 					switch (args[2].toLowerCase()) {
 						case "clear":
-							this.man.EDITOR.clearCommands(day);
+							this.calendarManager.EDITOR.clearCommands(day);
 							break;
 						case "add":
-							this.man.EDITOR.addCommand(day, Arrays.asList(args).subList(3, args.length).stream().collect(Collectors.joining(" ")));
+							this.calendarManager.EDITOR.addCommand(day, Arrays.asList(args).subList(3, args.length).stream().collect(Collectors.joining(" ")));
 							break;
 						case "test":
-							this.man.getDoor(day).reward(p);
+							this.calendarManager.getDoor(day).reward(player);
 							break;
 						default:
 							throw new NumberFormatException("wrong usage");
 					}
-				} catch (ArrayIndexOutOfBoundsException | NumberFormatException e) {
-					this.message(p, "Error: " + e.getMessage());
-					this.message(p, "use \"edit [day] clear/add/test [command]\"");
+				} catch (ArrayIndexOutOfBoundsException | NumberFormatException exception) {
+					this.message(player, "Error: " + exception.getMessage());
+					this.message(player, "use \"edit [day] clear/add/test [command]\"");
 					return false;
 				}
 			}
@@ -60,35 +72,39 @@ public class CalendarCommandExecutor implements CommandExecutor {
 		return false;
 	}
 
+	/**
+	 * Re-reads calendar.cfg and re-applies the door rewards so admins do
+	 * not have to restart the server after editing the file.
+	 */
 	private void reloadCalendarSettings() {
-
-	}
-	
-	private void openCalendarView() {
-		
+		try {
+			this.calendarManager.load();
+		} catch (IOException exception) {
+			this.plugin.getLogger().log(Level.WARNING,
+					"IO error with save-file while loading: " + exception.getLocalizedMessage());
+		}
 	}
 
 	@Override
 	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-		if (args.length > 0) {
-			if (args[0].equalsIgnoreCase("reload")) {
-				reloadCalendarSettings();
-				return true;
-			}
+		if (args.length > 0 && args[0].equalsIgnoreCase("reload")) {
+			reloadCalendarSettings();
+			return true;
 		}
-		if (sender instanceof Player) {
-			Player player = (Player) sender;
+		if (sender instanceof Player player) {
 			if (args.length > 0 && player.isOp()) {
 				if (this.opCommand(player, args)) {
 					return true;
 				}
 			}
 
-			if (player.hasPermission(Permissions.OWN_AND_SHOW_CALENDAR)) {
-				if (!man.isActive(player)) {
+			// opening the calendar requires both owning and showing it
+			if (player.hasPermission(Permissions.OWN_CALENDAR)
+					&& player.hasPermission(Permissions.SHOW_CALENDAR)) {
+				if (!this.calendarManager.isActive(player)) {
 					this.message(player, Messages.MSG_WRONG_TIME);
 				} else if (player.getGameMode().equals(GameMode.SURVIVAL)) {
-					runSynced(() -> player.openInventory(man.get(player).getCalendar()));
+					runSynced(() -> player.openInventory(this.calendarManager.get(player).getCalendar()));
 				} else {
 					this.message(player, Messages.MSG_WRONG_GAMEMODE);
 				}
