@@ -64,7 +64,7 @@ public class CalendarManager {
                 );
             }
         }
-        plugin.log(Level.INFO, "Loaded (" + data.size() + " players) in " + (System.currentTimeMillis() - t1) + "ms");
+        plugin.getLogger().log(Level.INFO, "Loaded (" + data.size() + " players) in " + (System.currentTimeMillis() - t1) + "ms");
         activePlayers.replaceAll((UUID uuid, PlayerCalendar cal) -> getNewCalendar(cal.getPlayer()));
         //in the case that there is a new player in the data, he will not be added to the active players - use rejoin
     }
@@ -80,14 +80,20 @@ public class CalendarManager {
                 ));
             }
         }
-        plugin.log(Level.INFO, "Saved (" + data.size() + " players) in " + (System.currentTimeMillis() - t1) + "ms");
+        plugin.getLogger().log(Level.INFO, "Saved (" + data.size() + " players) in " + (System.currentTimeMillis() - t1) + "ms");
     }
 
+    /**
+     * Saves the player data in the background. Failures are ignored
+     * on purpose: the next explicit save (e.g. on shutdown) retries
+     * with the same in-memory data.
+     */
     protected void silentSave() {
-        plugin.runAsync(() -> {
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 save();
-            } catch (IOException e) {
+            } catch (IOException exception) {
+                // ignore: saving is best-effort here
             }
         });
     }
@@ -101,7 +107,7 @@ public class CalendarManager {
     }
     
     public IDateChecker getDateChecker() {
-        return plugin.getDateChecker();
+        return plugin.getService(IDateChecker.class);
     }
 
     public Optional<PlayerCalendar> connectCalendar(Player p) {
