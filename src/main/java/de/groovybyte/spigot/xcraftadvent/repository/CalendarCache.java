@@ -1,6 +1,6 @@
 package de.groovybyte.spigot.xcraftadvent.repository;
 
-import de.groovybyte.spigot.xcraftadvent.ICalendar;
+import de.groovybyte.spigot.xcraftadvent.entity.ICalendar;
 import java.io.IOException;
 import org.bukkit.entity.Player;
 

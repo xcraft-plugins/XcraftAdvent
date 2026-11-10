@@ -1,6 +1,6 @@
 package de.groovybyte.spigot.xcraftadvent.listener;
 
-import de.groovybyte.spigot.xcraftadvent.ICalendar;
+import de.groovybyte.spigot.xcraftadvent.entity.ICalendar;
 import de.groovybyte.spigot.xcraftadvent.IServiceProvider;
 import de.groovybyte.spigot.xcraftadvent.Messages;
 import de.groovybyte.spigot.xcraftadvent.Permissions;
