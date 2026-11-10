@@ -28,13 +28,13 @@ public class Door {
     }
 
     public void update(Configuration cfg) {
-        int nr = 1;
-        String path = "rewards.door" + day + ".item" + nr;
+        int itemNumber = 1;
+        String path = "rewards.door" + day + ".item" + itemNumber;
         List<ItemStack> items = new ArrayList<>();
         while (cfg.contains(path)) {
             items.add(cfg.getItemStack(path));
-            nr++;
-            path = "rewards.door" + day + ".item" + nr;
+            itemNumber++;
+            path = "rewards.door" + day + ".item" + itemNumber;
         }
         this.rewardItems = items.toArray(new ItemStack[0]);
         this.rewardCmds = cfg.getStringList("rewards.door" + day + ".commands").toArray(new String[0]);
@@ -66,14 +66,14 @@ public class Door {
 
     public boolean reward(Player player) {
         if (this.isEmpty()) {
-            this.plugin.log(Level.WARNING, "door " + this.day + " hasn\'t been filled yet");
+            this.plugin.getLogger().log(Level.WARNING, "door " + this.day + " hasn\'t been filled yet");
             return false;
         }
-        for (String cmd : this.rewardCmds) {
-            cmd = cmd.replace("@p", player.getName());
-            boolean result = this.plugin.getServer().dispatchCommand(player.getServer().getConsoleSender(), cmd);
+        for (String command : this.rewardCmds) {
+            command = command.replace("@p", player.getName());
+            boolean result = this.plugin.getServer().dispatchCommand(player.getServer().getConsoleSender(), command);
             if (!result) {
-                this.plugin.log(Level.WARNING, cmd + " failed");
+                this.plugin.getLogger().log(Level.WARNING, command + " failed");
             }
         }
         if (this.rewardItems.length != 0) {
@@ -82,12 +82,12 @@ public class Door {
                     .addItem(this.rewardItems)
                     .values();
             if (overflow.isEmpty()) {
-                this.plugin.message(player, String.format(Messages.MSG_OPENING, this.day));
+                Messages.send(player, String.format(Messages.MSG_OPENING, this.day));
             } else {
-                World pWorld = player.getWorld();
-                Location pLoc = player.getLocation();
-                overflow.forEach((ItemStack is) -> pWorld.dropItemNaturally(pLoc, is));
-                this.plugin.message(player, Messages.MSG_OVERFLOW);
+                World playerWorld = player.getWorld();
+                Location playerLocation = player.getLocation();
+                overflow.forEach((ItemStack itemStack) -> playerWorld.dropItemNaturally(playerLocation, itemStack));
+                Messages.send(player, Messages.MSG_OVERFLOW);
             }
         }
         return true;

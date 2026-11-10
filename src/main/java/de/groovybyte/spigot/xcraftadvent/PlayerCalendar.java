@@ -95,10 +95,10 @@ public final class PlayerCalendar {
 
 	public void open(ItemStack i, int day) {
 		if (!this.man.getDoor(day).reward(player)) {
-			this.man.plugin.message(player, Messages.MSG_MISSING_CONTENT);
+			Messages.send(player, Messages.MSG_MISSING_CONTENT);
 		} else {
 			this.setOpen(day);
-			this.man.plugin.log(Level.INFO, player.getName() + " opened door " + day);
+			this.man.plugin.getLogger().log(Level.INFO, player.getName() + " opened door " + day);
 			this.doors.remove(i);
 			i.setType(Material.CHEST);
 			ItemMeta meta = i.getItemMeta();

@@ -21,19 +21,19 @@ public class CalendarEditor {
     //p.setMetadata("calendarEditing", new FixedMetadataValue(this.plugin, true));
 
     protected final XcraftAdvent plugin;
-    protected final CalendarManager man;
+    protected final CalendarManager calendarManager;
     protected Player player = null;
-    protected final Inventory inv;
+    protected final Inventory inventory;
     protected int editingDay;
 
-    public CalendarEditor(XcraftAdvent plugin, CalendarManager man) {
+    public CalendarEditor(XcraftAdvent plugin, CalendarManager calendarManager) {
         this.plugin = plugin;
-        this.man = man;
-        this.inv = plugin.getServer().createInventory(null, InventoryType.CHEST, Messages.INV_FILL);
+        this.calendarManager = calendarManager;
+        this.inventory = plugin.getServer().createInventory(null, InventoryType.CHEST, Messages.INV_FILL);
     }
 
     protected Door getDoor(int day) {
-        return this.man.doors[day - 1];
+        return this.calendarManager.doors[day - 1];
     }
 
     protected boolean inSelectionInv() {
@@ -45,66 +45,66 @@ public class CalendarEditor {
         ItemStack item;
         ItemMeta meta;
         Door door;
-        for (int i = 1; i <= 24; i++) {
-            door = this.getDoor(i);
+        for (int day = 1; day <= 24; day++) {
+            door = this.getDoor(day);
 
             item = new ItemStack(door.isEmpty() ? Material.COBWEB : Material.CHEST, 1);
             meta = item.getItemMeta();
 
-            List<String> l = new ArrayList<>();
+            List<String> lore = new ArrayList<>();
             if (door.isEmpty()) {
-                l.add("leer");
+                lore.add("leer");
             } else {
                 if (door.hasItems()) {
-                    l.add("enthält: " + Arrays
+                    lore.add("enthält: " + Arrays
                             .stream(door.getItems())
                             .limit(5)
-                            .map((ItemStack is) -> is.getType().toString())
+                            .map((ItemStack itemStack) -> itemStack.getType().toString())
                             .collect(Collectors.joining(", ")));
                 }
                 if (door.hasCommands()) {
-                    l.add("führt " + door.getCommands().length + " Commands aus");
+                    lore.add("führt " + door.getCommands().length + " Commands aus");
                 }
             }
-            meta.setDisplayName(String.format(Messages.ITEM_EDIT_DAY, Integer.toString(i)));
-            meta.setLore(l);
+            meta.setDisplayName(String.format(Messages.ITEM_EDIT_DAY, Integer.toString(day)));
+            meta.setLore(lore);
 
             item.setItemMeta(meta);
-            content[i - 1] = item;
+            content[day - 1] = item;
         }
-        this.inv.setContents(content);
+        this.inventory.setContents(content);
         this.editingDay = 0;
     }
 
     protected void setDayInv(int day) {
-        Door d = this.getDoor(day);
-        this.inv.setContents(d.getItems());
+        Door door = this.getDoor(day);
+        this.inventory.setContents(door.getItems());
         this.editingDay = day;
     }
 
     public void clearCommands(int day) {
-        this.man.config.set("rewards.door" + day + ".commands", null);
-        this.man.doors[day - 1].update(this.man.config);
+        this.calendarManager.config.set("rewards.door" + day + ".commands", null);
+        this.calendarManager.doors[day - 1].update(this.calendarManager.config);
         try {
-            this.man.config.save(this.man.cfgFile);
-        } catch (IOException ex) {
-            this.plugin.log(Level.WARNING, "config io error");
+            this.calendarManager.config.save(this.calendarManager.cfgFile);
+        } catch (IOException exception) {
+            this.plugin.getLogger().log(Level.WARNING, "config io error");
         }
     }
 
-    public void addCommand(int day, String cmd) {
-        cmd = cmd.trim();
-        if (cmd.isEmpty()) {
+    public void addCommand(int day, String command) {
+        command = command.trim();
+        if (command.isEmpty()) {
             return;
         }
-        List<String> tmp = this.man.config.getStringList("rewards.door" + day + ".commands");
-        tmp.add(cmd);
-        this.man.config.set("rewards.door" + day + ".commands", tmp);
-        this.man.doors[day - 1].update(this.man.config);
+        List<String> commands = this.calendarManager.config.getStringList("rewards.door" + day + ".commands");
+        commands.add(command);
+        this.calendarManager.config.set("rewards.door" + day + ".commands", commands);
+        this.calendarManager.doors[day - 1].update(this.calendarManager.config);
         try {
-            this.man.config.save(this.man.cfgFile);
-        } catch (IOException ex) {
-            this.plugin.log(Level.WARNING, "config io error");
+            this.calendarManager.config.save(this.calendarManager.cfgFile);
+        } catch (IOException exception) {
+            this.plugin.getLogger().log(Level.WARNING, "config io error");
         }
     }
 
@@ -115,13 +115,13 @@ public class CalendarEditor {
         }
         this.player = player;
         this.setSelectionInv();
-        this.player.openInventory(this.inv);
+        this.player.openInventory(this.inventory);
     }
 
-    public void edit(InventoryClickEvent ev) {
+    public void edit(InventoryClickEvent event) {
         if (this.inSelectionInv()) {
-            ev.setCancelled(true);
-            this.setDayInv(ev.getRawSlot() + 1);
+            event.setCancelled(true);
+            this.setDayInv(event.getRawSlot() + 1);
         } else {
 
         }
@@ -134,20 +134,20 @@ public class CalendarEditor {
     public void stopEditing() {
         if (!this.inSelectionInv()) {
             List<ItemStack> items = Arrays
-                    .asList(this.inv.getContents())
+                    .asList(this.inventory.getContents())
                     .stream()
-                    .filter((ItemStack is) -> (is != null))
-                    .filter((ItemStack is) -> !PlayerCalendar.isAir(is))
+                    .filter((ItemStack itemStack) -> (itemStack != null))
+                    .filter((ItemStack itemStack) -> !PlayerCalendar.isAir(itemStack))
                     .collect(Collectors.toList());
-            for (int i = 0; i < items.size(); i++) {
-                this.man.config.set("rewards.door" + this.editingDay + ".item" + (i + 1), items.get(i));
+            for (int index = 0; index < items.size(); index++) {
+                this.calendarManager.config.set("rewards.door" + this.editingDay + ".item" + (index + 1), items.get(index));
             }
-            this.man.doors[this.editingDay - 1].update(this.man.config);
+            this.calendarManager.doors[this.editingDay - 1].update(this.calendarManager.config);
 
             try {
-                this.man.config.save(this.man.cfgFile);
-            } catch (IOException ex) {
-                this.plugin.log(Level.WARNING, "config io error");
+                this.calendarManager.config.save(this.calendarManager.cfgFile);
+            } catch (IOException exception) {
+                this.plugin.getLogger().log(Level.WARNING, "config io error");
             }
         }
         this.player = null;
