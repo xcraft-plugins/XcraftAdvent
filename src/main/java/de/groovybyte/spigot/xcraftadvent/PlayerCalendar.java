@@ -1,9 +1,11 @@
 package de.groovybyte.spigot.xcraftadvent;
 
+import de.groovybyte.spigot.xcraftadvent.entity.ICalendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.logging.Level;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -11,20 +13,20 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-public final class PlayerCalendar {
+public final class PlayerCalendar implements ICalendar {
 
-	protected final CalendarManager man;
+	protected final CalendarManager calendarManager;
 	protected final Player player;
 	protected final Map<ItemStack, Integer> doors = new HashMap<>();
 	protected final Inventory calendar;
 	public int genDay;
 	protected int open;
 
-	public PlayerCalendar(CalendarManager man, Player player, int openStatus) {
-		this.man = man;
+	public PlayerCalendar(CalendarManager calendarManager, Player player, int openStatus) {
+		this.calendarManager = calendarManager;
 		this.player = player;
 		this.open = openStatus;
-		this.calendar = man.plugin.getServer().createInventory(player, 54, Messages.INV_TITLE);
+		this.calendar = calendarManager.plugin.getServer().createInventory(player, 54, Messages.INV_TITLE);
 		this.calendar.setMaxStackSize(1);
 		generateCalendar();
 	}
@@ -34,8 +36,8 @@ public final class PlayerCalendar {
 		if (obj == null || !(obj instanceof PlayerCalendar)) {
 			return false;
 		}
-		PlayerCalendar cal = (PlayerCalendar) obj;
-		return this.player.getUniqueId().equals(cal.getPlayer().getUniqueId());
+		PlayerCalendar other = (PlayerCalendar) obj;
+		return this.player.getUniqueId().equals(other.getPlayer().getUniqueId());
 	}
 
 	@Override
@@ -43,74 +45,84 @@ public final class PlayerCalendar {
 		return this.player.getUniqueId().hashCode();
 	}
 
+	@Override
+	public Player getOwner() {
+		return this.player;
+	}
+
 	protected boolean isUp2Date() {
-		return this.genDay == man.getDateChecker().getDayOfMonth();
+		return this.genDay == calendarManager.getDateChecker().getDayOfMonth();
 	}
 
 	protected void generateCalendar() {
 		this.doors.clear();
 		this.calendar.setStorageContents(FILL);
-		this.genDay = man.getDateChecker().getDayOfMonth();
+		this.genDay = calendarManager.getDateChecker().getDayOfMonth();
 		ItemStack door;
 		ItemMeta meta;
-		for (int d = 1; d <= 24; d++) {
-			door = new ItemStack(isOpen(d)
+		for (int day = 1; day <= 24; day++) {
+			door = new ItemStack(isOpen(day)
 					? DOOR_OPEN
-					: (d == 24)
+					: (day == 24)
 							? DOOR_24
 							: DOOR_CLOSED);
 			meta = door.getItemMeta();
-			if (d > this.genDay) {
-				String lore = String.format((d == 24)
+			if (day > this.genDay) {
+				String lore = String.format((day == 24)
 						? Messages.ITEM_24
 						: Messages.ITEM_FUTURE,
-						d - this.genDay,
-						(d - this.genDay == 1) ? "" : "en");
+						day - this.genDay,
+						(day - this.genDay == 1) ? "" : "en");
 				meta.setLore(Collections.singletonList(lore));
-			} else if (d == 24) {
+			} else if (day == 24) {
 				meta.setLore(Collections.singletonList(Messages.ITEM_24_READY));
 			}
 
-			meta.setDisplayName(String.format(Messages.ITEM_NAME, d));
+			meta.setDisplayName(String.format(Messages.ITEM_NAME, day));
 			door.setItemMeta(meta);
 
-			this.doors.put(door, d);
-			this.calendar.setItem(this.man.getDoor(d).getPosition(), door);
+			this.doors.put(door, day);
+			this.calendar.setItem(this.calendarManager.getDoor(day).getPosition(), door);
 		}
 	}
 
-	public boolean isValidDoor(ItemStack i) {
-		return isCalendarDoor(i)
-				&& i.hasItemMeta()
-				&& this.doors.containsKey(i);
+	@Override
+	public boolean isValidDoor(ItemStack item) {
+		return isCalendarDoor(item)
+				&& item.hasItemMeta()
+				&& this.doors.containsKey(item);
 	}
 
-	public int getClickedDay(ItemStack ci) {
-		return this.doors.get(ci);
+	@Override
+	public int getClickedDay(ItemStack item) {
+		return this.doors.get(item);
 	}
 
-	public boolean isCalendar(Inventory i) {
-		return this.calendar.equals(i);
+	@Override
+	public boolean matches(Inventory inventory) {
+		return this.calendar.equals(inventory);
 	}
 
-	public void open(ItemStack i, int day) {
-		if (!this.man.getDoor(day).reward(player)) {
-			Messages.send(player, Messages.MSG_MISSING_CONTENT);
+	@Override
+	public void open(ItemStack item, int day) {
+		if (!this.calendarManager.getDoor(day).reward(this.player)) {
+			Messages.send(this.player, Messages.MSG_MISSING_CONTENT);
 		} else {
 			this.setOpen(day);
-			this.man.plugin.getLogger().log(Level.INFO, player.getName() + " opened door " + day);
-			this.doors.remove(i);
-			i.setType(Material.CHEST);
-			ItemMeta meta = i.getItemMeta();
+			this.calendarManager.plugin.getLogger().log(Level.INFO, this.player.getName() + " opened door " + day);
+			this.doors.remove(item);
+			item.setType(Material.CHEST);
+			ItemMeta meta = item.getItemMeta();
 			meta.setLore(Collections.singletonList(Messages.ITEM_OPENED));
-			i.setItemMeta(meta);
-			this.doors.put(i, day);
+			item.setItemMeta(meta);
+			this.doors.put(item, day);
 			this.player.playSound(this.player.getEyeLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1f);
 		}
 	}
 
+	@Override
 	public boolean hasClosedDoors() {
-		int day = 0, b = 0;
+		int day = 0;
 		while (canOpen(++day)) {
 			if (!isOpen(day)) {
 				return true;
@@ -129,6 +141,7 @@ public final class PlayerCalendar {
 		// 0b010101
 	}
 
+	@Override
 	public boolean isOpen(int day) {
 		return ((this.open >> --day) & 0b1) == 0b1;
 	}
@@ -137,6 +150,7 @@ public final class PlayerCalendar {
 		return 0b1111_1111_1111_1111_1111_1111 == this.open;
 	}
 
+	@Override
 	public boolean canOpen(int day) {
 		return day <= this.genDay && day <= 24;
 	}
@@ -149,7 +163,7 @@ public final class PlayerCalendar {
 	}
 
 	public Player getPlayer() {
-		return player;
+		return this.player;
 	}
 
 	public int getOpenStatus() {
@@ -175,8 +189,8 @@ public final class PlayerCalendar {
 
 		int dChestSize = 54;
 		Inventory calendar = Bukkit.createInventory(null, dChestSize);
-		for (int i = 0; i < dChestSize; i++) {
-			calendar.setItem(i, SAPLING);
+		for (int index = 0; index < dChestSize; index++) {
+			calendar.setItem(index, SAPLING);
 		}
 		FILL = calendar.getStorageContents();
 
@@ -189,11 +203,11 @@ public final class PlayerCalendar {
 		DOOR_CLOSED.setItemMeta(meta);
 	}
 
-	protected static boolean isAir(ItemStack i) {
-		return i.getType().equals(Material.AIR) || i.getAmount() == 0;
+	protected static boolean isAir(ItemStack itemStack) {
+		return itemStack.getType().equals(Material.AIR) || itemStack.getAmount() == 0;
 	}
 
-	public static boolean isCalendarDoor(ItemStack i) {
-		return !isAir(i) && !PlayerCalendar.SAPLING.isSimilar(i);
+	public static boolean isCalendarDoor(ItemStack itemStack) {
+		return !isAir(itemStack) && !PlayerCalendar.SAPLING.isSimilar(itemStack);
 	}
 }

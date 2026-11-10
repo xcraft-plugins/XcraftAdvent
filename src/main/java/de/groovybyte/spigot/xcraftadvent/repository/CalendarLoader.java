@@ -1,40 +1,46 @@
 package de.groovybyte.spigot.xcraftadvent.repository;
 
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import de.groovybyte.spigot.xcraftadvent.CalendarManager;
 import de.groovybyte.spigot.xcraftadvent.entity.ICalendar;
-import java.io.IOException;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 
+/**
+ * Calendar repository backed by the {@link CalendarManager}.
+ *
+ * <p>The load/unload work is scheduled on the Bukkit main thread instead of
+ * a worker pool: creating the calendar inventories is not thread-safe, and
+ * the manager already keeps its state in memory (no blocking IO involved).
+ */
 public class CalendarLoader implements ICalendarRepository {
 
-	protected ExecutorService executor;
+	protected final JavaPlugin plugin;
+	protected final CalendarManager calendarManager;
 
-	public CalendarLoader() {
-		executor = Executors.newCachedThreadPool(
-				new ThreadFactoryBuilder()
-				.setNameFormat("CalendarLoaderThread-%d")
-				.build()
-		);
-	}
-	
-	protected ICalendar loadCalendarSyncronized(Player player) {
-		return null;
-	}
-
-	protected ICalendar unloadCalendarSyncronized(Player player) {
-		return null;
-	}
-	
-	@Override
-	public CompletableFuture<ICalendar> loadCalendar(Player player) throws IOException {
-		return CompletableFuture.supplyAsync(() -> loadCalendarSyncronized(player), executor);
+	public CalendarLoader(JavaPlugin plugin, CalendarManager calendarManager) {
+		this.plugin = plugin;
+		this.calendarManager = calendarManager;
 	}
 
 	@Override
-	public CompletableFuture<ICalendar> unloadCalendar(Player player) throws IOException {
-		throw new UnsupportedOperationException("Not supported yet.");
+	public ICalendar getCalendar(Player player) {
+		return this.calendarManager.get(player);
+	}
+
+	@Override
+	public CompletableFuture<ICalendar> loadCalendar(Player player) {
+		CompletableFuture<ICalendar> future = new CompletableFuture<>();
+		this.plugin.getServer().getScheduler().runTask(this.plugin, () ->
+				future.complete(this.calendarManager.connectCalendar(player).orElse(null)));
+		return future;
+	}
+
+	@Override
+	public CompletableFuture<ICalendar> unloadCalendar(Player player) {
+		CompletableFuture<ICalendar> future = new CompletableFuture<>();
+		this.plugin.getServer().getScheduler().runTask(this.plugin, () ->
+				future.complete(this.calendarManager.disconnectCalendar(player)));
+		return future;
 	}
 }
