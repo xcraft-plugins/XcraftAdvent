@@ -8,7 +8,7 @@ import org.bukkit.command.CommandSender;
 public final class Messages {
 
 	public final static String CHAT_PREFIX = ChatColor.WHITE + "[" + ChatColor.DARK_GREEN + "Adventskalender" + ChatColor.WHITE + "]" + ChatColor.DARK_AQUA + " ";
-	private final static BaseComponent[] PREFIX = TextComponent.fromLegacyText(CHAT_PREFIX);
+	private final static BaseComponent PREFIX = TextComponent.fromLegacy(CHAT_PREFIX);
 	public final static String INV_TITLE = "Adventskalender";
 	public final static String INV_FILL = "Türchenfüllen";
 	public final static String ITEM_NAME = "Tag %s";
