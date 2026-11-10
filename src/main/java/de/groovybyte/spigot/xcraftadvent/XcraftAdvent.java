@@ -5,50 +5,59 @@ import com.google.common.collect.MutableClassToInstanceMap;
 import de.groovybyte.spigot.xcraftadvent.listener.CalendarCommandExecutor;
 import de.groovybyte.spigot.xcraftadvent.listener.ConnectionListener;
 import de.groovybyte.spigot.xcraftadvent.listener.InventoryListener;
-import org.bukkit.plugin.java.JavaPlugin;
-
+import de.groovybyte.spigot.xcraftadvent.repository.CalendarLoader;
+import de.groovybyte.spigot.xcraftadvent.repository.ICalendarRepository;
 import java.io.File;
 import java.io.IOException;
 import java.util.Objects;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import org.bukkit.event.Listener;
+import org.bukkit.plugin.java.JavaPlugin;
 
 public final class XcraftAdvent extends JavaPlugin implements IServiceProvider {
 
     public final static boolean DEBUG = true;
-	public final static String CALENDAR_COMMAND_LABEL = "adventskalender";
+    public final static String CALENDAR_COMMAND_LABEL = "adventskalender";
 
-	private final ClassToInstanceMap<Object> services;
-    protected InventoryListener inventoryListener;
-    protected ConnectionListener connectionListener;
-	protected CalendarCommandExecutor calendarCommandExecutor;
-    protected CalendarManager man;
+    private final ClassToInstanceMap<Object> services = MutableClassToInstanceMap.create();
+    protected CalendarManager calendarManager;
 
     public XcraftAdvent() {
-		services = MutableClassToInstanceMap.create();
-		services.putInstance(IDateChecker.class, DEBUG
+        registerService(IDateChecker.class, DEBUG
             ? new DebugDateChecker()
             : new DefaultDateChecker()
         );
     }
-	
-	@Override
-	public <S> S getService(Class<? extends S> serviceType) {
-		return (S) services.getInstance(serviceType);
-	}
+
+    @Override
+    public <S> S getService(Class<? extends S> serviceType) {
+        return (S) services.getInstance(serviceType);
+    }
+
+    /**
+     * Registers a service instance under its type. Listeners and other
+     * components resolve their dependencies via {@link #getService}.
+     */
+    public <S> void registerService(Class<S> serviceType, S service) {
+        services.putInstance(serviceType, service);
+    }
 
     @Override
     public void onEnable() {
-		services.putInstance(Logger.class, getLogger());
-		
+        registerService(JavaPlugin.class, this);
+        registerService(Logger.class, getLogger());
+
         File pluginFolder = this.getDataFolder();
         if (!pluginFolder.exists()) {
             pluginFolder.mkdirs();
         }
-        man = new CalendarManager(this,
+        calendarManager = new CalendarManager(this,
                 new File(pluginFolder, "calendar.cfg"),
                 new File(pluginFolder, "players.data")
         );
+        registerService(CalendarManager.class, calendarManager);
+        registerService(ICalendarRepository.class, new CalendarLoader(this, calendarManager));
 
 //        if (!DateChecker.isDecember()) {
 //            this.log(Level.WARNING, "this month is not december, the plugin will be disabled");
@@ -56,26 +65,30 @@ public final class XcraftAdvent extends JavaPlugin implements IServiceProvider {
 //            return;
 //        }
         try {
-            man.load();
-        } catch (IOException e) {
-            getLogger().log(Level.WARNING, "IO error with save-file while loading: {0}", e.getLocalizedMessage());
+            calendarManager.load();
+        } catch (IOException exception) {
+            getLogger().log(Level.WARNING, "IO error with save-file while loading: {0}", exception.getLocalizedMessage());
         }
 
-        inventoryListener = new InventoryListener(this);
-        connectionListener = new ConnectionListener(this);
-        getServer().getPluginManager().registerEvents(inventoryListener, this);
-        getServer().getPluginManager().registerEvents(connectionListener, this);
-		calendarCommandExecutor = new CalendarCommandExecutor();
+        registerEventListener(new InventoryListener(this));
+        registerEventListener(new ConnectionListener(this));
+
+        CalendarCommandExecutor commandExecutor = new CalendarCommandExecutor(calendarManager, this);
         Objects.requireNonNull(this.getCommand(CALENDAR_COMMAND_LABEL))
-            .setExecutor(calendarCommandExecutor);
+            .setExecutor(commandExecutor);
+    }
+
+    private <L extends Listener> void registerEventListener(L listener) {
+        getServer().getPluginManager().registerEvents(listener, this);
     }
 
     @Override
     public void onDisable() {
         try {
-            man.save();
-        } catch (IOException e) {
-            getLogger().log(Level.WARNING, "IO error with save-file while saving: {0}", e.getLocalizedMessage());
+            calendarManager.save();
+        } catch (IOException exception) {
+            getLogger().log(Level.WARNING, "IO error with save-file while saving: {0}", exception.getLocalizedMessage());
         }
+        services.clear();
     }
 }

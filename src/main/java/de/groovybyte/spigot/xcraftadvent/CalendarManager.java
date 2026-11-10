@@ -45,15 +45,15 @@ public class CalendarManager {
     }
 
     public void load() throws IOException {
-        long t1 = System.currentTimeMillis();
+        long startTime = System.currentTimeMillis();
         data.clear();
         config = YamlConfiguration.loadConfiguration(cfgFile);
-        for (int i = 0; i < 24; i++) {
-            doors[i].update(config);
+        for (int index = 0; index < doors.length; index++) {
+            doors[index].update(config);
         }
-        try (BufferedReader br = new BufferedReader(new FileReader(saveFile))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(saveFile))) {
             String line;
-            while ((line = br.readLine()) != null) {
+            while ((line = reader.readLine()) != null) {
                 int split = line.indexOf(':');
                 if (line.isEmpty() || split == -1) {
                     continue;
@@ -64,23 +64,23 @@ public class CalendarManager {
                 );
             }
         }
-        plugin.getLogger().log(Level.INFO, "Loaded (" + data.size() + " players) in " + (System.currentTimeMillis() - t1) + "ms");
-        activePlayers.replaceAll((UUID uuid, PlayerCalendar cal) -> getNewCalendar(cal.getPlayer()));
+        plugin.getLogger().log(Level.INFO, "Loaded (" + data.size() + " players) in " + (System.currentTimeMillis() - startTime) + "ms");
+        activePlayers.replaceAll((playerId, calendar) -> getNewCalendar(calendar.getPlayer()));
         //in the case that there is a new player in the data, he will not be added to the active players - use rejoin
     }
 
     public void save() throws IOException {
-        long t1 = System.currentTimeMillis();
-        activePlayers.forEach((UUID pid, PlayerCalendar cal) -> data.put(pid, cal.getOpenStatus()));
-        try (FileWriter fw = new FileWriter(saveFile, false)) {
+        long startTime = System.currentTimeMillis();
+        activePlayers.forEach((playerId, calendar) -> data.put(playerId, calendar.getOpenStatus()));
+        try (FileWriter writer = new FileWriter(saveFile, false)) {
             for (Map.Entry<UUID, Integer> entry : data.entrySet()) {
-                fw.write(String.format("%s:%x\n",
+                writer.write(String.format("%s:%x\n",
                         entry.getKey().toString(),
                         entry.getValue()
                 ));
             }
         }
-        plugin.getLogger().log(Level.INFO, "Saved (" + data.size() + " players) in " + (System.currentTimeMillis() - t1) + "ms");
+        plugin.getLogger().log(Level.INFO, "Saved (" + data.size() + " players) in " + (System.currentTimeMillis() - startTime) + "ms");
     }
 
     /**
@@ -98,41 +98,51 @@ public class CalendarManager {
         });
     }
 
-    public boolean isActive(Player p) {
-        return activePlayers.containsKey(p.getUniqueId());
+    public boolean isActive(Player player) {
+        return activePlayers.containsKey(player.getUniqueId());
     }
 
-    public PlayerCalendar get(Player p) {
-        return activePlayers.get(p.getUniqueId());
+    public PlayerCalendar get(Player player) {
+        return activePlayers.get(player.getUniqueId());
     }
-    
+
     public IDateChecker getDateChecker() {
         return plugin.getService(IDateChecker.class);
     }
 
-    public Optional<PlayerCalendar> connectCalendar(Player p) {
+    public Optional<PlayerCalendar> connectCalendar(Player player) {
         if (getDateChecker().isCalendarTime()) {
-            UUID pid = p.getUniqueId();
-            if (activePlayers.containsKey(pid)) {
-                return Optional.of(activePlayers.get(pid));
-            } else if (data.containsKey(pid) || getDateChecker().canCreateNewCalendar()) {
-                PlayerCalendar calendar = getNewCalendar(p);
-                activePlayers.put(pid, calendar);
+            UUID playerId = player.getUniqueId();
+            if (activePlayers.containsKey(playerId)) {
+                return Optional.of(activePlayers.get(playerId));
+            } else if (data.containsKey(playerId) || getDateChecker().canCreateNewCalendar()) {
+                PlayerCalendar calendar = getNewCalendar(player);
+                activePlayers.put(playerId, calendar);
                 return Optional.of(calendar);
             }
         }
         return Optional.empty();
     }
 
-    public PlayerCalendar getNewCalendar(Player p) {
-        return new PlayerCalendar(this, p, data.getOrDefault(p.getUniqueId(), 0));
+    public PlayerCalendar getNewCalendar(Player player) {
+        return new PlayerCalendar(this, player, data.getOrDefault(player.getUniqueId(), 0));
     }
 
-    public void disconnectCalendar(Player p) {
-        UUID pid = p.getUniqueId();
-        if (activePlayers.containsKey(pid)) {
-            data.put(pid, activePlayers.remove(pid).getOpenStatus());
+    /**
+     * Removes the player's calendar from the active set and persists its
+     * open status.
+     *
+     * @return the calendar that was removed, or {@code null} if the player
+     *         had none
+     */
+    public PlayerCalendar disconnectCalendar(Player player) {
+        UUID playerId = player.getUniqueId();
+        if (activePlayers.containsKey(playerId)) {
+            PlayerCalendar calendar = activePlayers.remove(playerId);
+            data.put(playerId, calendar.getOpenStatus());
             silentSave();
+            return calendar;
         }
+        return null;
     }
 }
