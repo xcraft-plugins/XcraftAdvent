@@ -30,10 +30,10 @@ public class ConnectionListener implements Listener {
 			return;
 		}
 		Player player = calendar.getOwner();
-		// Backward compatibility: the command permission in plugin.yml is
-		// "calendar.ownAndShow" (2.0.0-alpha2 JAR), but at runtime we check
-		// calendar.show individually so migrated servers also work.
-		if (player.hasPermission(Permissions.SHOW_CALENDAR)) {
+		// Backward compatibility: accepts "calendar.ownAndShow" (combined,
+		// 2.0.0-alpha2 JAR) OR "calendar.show" (split permission).
+		if (player.hasPermission(Permissions.OWN_AND_SHOW)
+				|| player.hasPermission(Permissions.SHOW_CALENDAR)) {
 			if (calendar.hasClosedDoors()) {
 				Messages.notifyAboutUnopenedDoors(player);
 
@@ -48,10 +48,10 @@ public class ConnectionListener implements Listener {
 	public void onPlayerJoin(PlayerJoinEvent event) {
 		Player player = event.getPlayer();
 
-		// Backward compatibility: the command permission in plugin.yml is
-		// "calendar.ownAndShow" (2.0.0-alpha2 JAR), but at runtime we check
-		// calendar.own individually so migrated servers also work.
-		if (player.hasPermission(Permissions.OWN_CALENDAR)) {
+		// Backward compatibility: accepts "calendar.ownAndShow" (combined,
+		// 2.0.0-alpha2 JAR) OR "calendar.own" (split permission).
+		if (player.hasPermission(Permissions.OWN_AND_SHOW)
+				|| player.hasPermission(Permissions.OWN_CALENDAR)) {
 			calendarRepository
 					.loadCalendar(player)
 					.thenAccept(this::checkForUnopenedDoors);

@@ -82,10 +82,10 @@ public class DoorLocationListener implements Listener {
      * directly instead of going through {@code ICalendar.open()}.
      */
     private void openCalendarDoor(Player player, Door door) {
-        // Backward compatibility: the 2.0.0-alpha2 JAR checked "calendar.ownAndShow"
-        // directly. The current code checks calendar.own AND calendar.show at runtime.
-        if (!player.hasPermission(Permissions.OWN_CALENDAR)
-                || !player.hasPermission(Permissions.SHOW_CALENDAR)) {
+        // Backward compatibility: accepts either the combined "calendar.ownAndShow"
+        // permission (2.0.0-alpha2 JAR) OR both "calendar.own" AND "calendar.show"
+        // (split permissions for migrated servers).
+        if (!Permissions.hasCalendarAccess(player)) {
             Messages.send(player, Messages.MSG_MISSING_PERM);
             return;
         }

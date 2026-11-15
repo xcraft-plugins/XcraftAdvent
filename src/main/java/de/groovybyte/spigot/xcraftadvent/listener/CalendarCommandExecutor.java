@@ -3,12 +3,16 @@ package de.groovybyte.spigot.xcraftadvent.listener;
 import de.groovybyte.spigot.xcraftadvent.CalendarManager;
 import de.groovybyte.spigot.xcraftadvent.Messages;
 import de.groovybyte.spigot.xcraftadvent.Permissions;
+import de.groovybyte.spigot.xcraftadvent.entity.BlockLocation;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.bukkit.GameMode;
+import org.bukkit.Location;
 import org.bukkit.block.Block;
+import org.bukkit.block.Container;
+import org.bukkit.block.BlockState;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -50,11 +54,18 @@ public class CalendarCommandExecutor implements CommandExecutor {
 						throw new NumberFormatException("not a day from the calendar");
 					}
 					switch (args[2].toLowerCase()) {
-						case "clear":
+						case "addcmd":
+							this.calendarManager.EDITOR.addCommand(day,
+									Arrays.asList(args).subList(3, args.length).stream().collect(Collectors.joining(" ")));
+							break;
+						case "clearcmds":
 							this.calendarManager.EDITOR.clearCommands(day);
 							break;
-						case "add":
-							this.calendarManager.EDITOR.addCommand(day, Arrays.asList(args).subList(3, args.length).stream().collect(Collectors.joining(" ")));
+						case "addlocation":
+							handleAddLocation(player, day);
+							break;
+						case "clearlocations":
+							this.calendarManager.EDITOR.clearDoorInventoryHolder(day);
 							break;
 						case "test":
 							this.calendarManager.getDoor(day).reward(player);
@@ -64,58 +75,43 @@ public class CalendarCommandExecutor implements CommandExecutor {
 					}
 				} catch (ArrayIndexOutOfBoundsException | NumberFormatException exception) {
 					this.message(player, "Error: " + exception.getMessage());
-					this.message(player, "use \"edit [day] clear/add/test [command]\"");
+					this.message(player, "use \"edit [day] addcmd/clearcmds/addlocation/clearlocations/test ([command])\"");
 					return false;
 				}
-			}
-			return true;
-		} else if (args[0].equalsIgnoreCase("addlocation")) {
-			// Adds the block the player is targeting as a physical door location
-			if (args.length < 2) {
-				this.message(player, "Error: missing day");
-				this.message(player, "use \"addlocation <day>\" (target a block first)");
-				return false;
-			}
-			try {
-				int day = Integer.parseInt(args[1]);
-				if (day < 1 || day > 24) {
-					throw new NumberFormatException("not a day from the calendar");
-				}
-				Block targetBlock = player.getTargetBlockExact(5);
-				if (targetBlock == null) {
-					this.message(player, "Error: could not find target block, look at a block and try again");
-					return false;
-				}
-				this.calendarManager.EDITOR.addDoorInventoryHolder(day, targetBlock.getLocation());
-				this.message(player, "Added location for door " + day + " at " + targetBlock.getLocation());
-			} catch (NumberFormatException exception) {
-				this.message(player, "Error: " + exception.getMessage());
-				this.message(player, "use \"addlocation <day>\"");
-				return false;
-			}
-			return true;
-		} else if (args[0].equalsIgnoreCase("clearlocations")) {
-			// Clears all physical door locations for a given day
-			if (args.length < 2) {
-				this.message(player, "Error: missing day");
-				this.message(player, "use \"clearlocations <day>\"");
-				return false;
-			}
-			try {
-				int day = Integer.parseInt(args[1]);
-				if (day < 1 || day > 24) {
-					throw new NumberFormatException("not a day from the calendar");
-				}
-				this.calendarManager.EDITOR.clearDoorInventoryHolder(day);
-				this.message(player, "Cleared locations for door " + day);
-			} catch (NumberFormatException exception) {
-				this.message(player, "Error: " + exception.getMessage());
-				this.message(player, "use \"clearlocations <day>\"");
-				return false;
 			}
 			return true;
 		}
 		return false;
+	}
+
+	/**
+	 * Handles {@code edit <day> addlocation} — validates that the player
+	 * targets a container block, checks for duplicate registration, and
+	 * registers the location.
+	 */
+	private void handleAddLocation(Player player, int day) {
+		Block target = player.getTargetBlockExact(15);
+		if (target == null) {
+			this.message(player, "Error: please target a valid storage container");
+			return;
+		}
+		BlockState state = target.getState();
+		if (!(state instanceof Container)) {
+			this.message(player, "Error: please target a valid storage container");
+			return;
+		}
+		Location location = target.getLocation();
+		// Check if this container is already linked to another door
+		de.groovybyte.spigot.xcraftadvent.entity.Door existing =
+				this.calendarManager.getDoorByLocation(BlockLocation.fromLocation(location));
+		if (existing != null) {
+			this.message(player, "Error: this storage container is already linked to calendar door " + existing.getDay());
+			return;
+		}
+		this.calendarManager.EDITOR.addDoorInventoryHolder(day, location);
+		this.message(player, "Added storage container at x=" + location.getBlockX()
+				+ ", y=" + location.getBlockY() + ", z=" + location.getBlockZ()
+				+ " to calendar door " + day);
 	}
 
 	/**
@@ -144,13 +140,10 @@ public class CalendarCommandExecutor implements CommandExecutor {
 				}
 			}
 
-			// Backward compatibility: plugin.yml declares the command permission as
-			// "calendar.ownAndShow" (matching the 2.0.0-alpha2 JAR) so that existing
-			// LuckPerms grants continue to work. However, at runtime we check both
-			// calendar.own AND calendar.show individually so that servers migrated to
-			// the split permissions also work.
-			if (player.hasPermission(Permissions.OWN_CALENDAR)
-					&& player.hasPermission(Permissions.SHOW_CALENDAR)) {
+			// Backward compatibility: accepts either the combined "calendar.ownAndShow"
+			// permission (2.0.0-alpha2 JAR) OR both "calendar.own" AND "calendar.show"
+			// (split permissions for migrated servers).
+			if (Permissions.hasCalendarAccess(player)) {
 				if (!this.calendarManager.isActive(player)) {
 					this.message(player, Messages.MSG_WRONG_TIME);
 				} else if (player.getGameMode().equals(GameMode.SURVIVAL)) {

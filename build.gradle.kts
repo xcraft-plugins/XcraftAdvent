@@ -1,7 +1,7 @@
 import com.github.benmanes.gradle.versions.updates.DependencyUpdatesTask
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import fr.il_totore.manadrop.Permission
-import de.groovybyte.spigot.xcraftadvent.PluginConstants
+import de.groovybyte.spigot.xcraftadvent.PluginConstants as BuildPluginConstants
 
 plugins {
     java
@@ -20,16 +20,9 @@ repositories {
     mavenLocal()
 }
 
-// The shared command/permission constants live in buildSrc so this build
-// script can reference them; adding the same source directory to the main
-// source set compiles the identical class into the plugin jar as well.
-sourceSets {
-    main {
-        java {
-            srcDir("buildSrc/src/main/java")
-        }
-    }
-}
+// PluginConstants lives in src/main/java for runtime use.
+// The build script uses the same literal values via buildSrc constants
+// (kept in sync manually — see buildSrc/PluginConstants.java).
 
 dependencies {
     compileOnly(libs.spigot)
@@ -64,32 +57,40 @@ tasks {
             apiVersion("26.3")
 
             command {
-                named(PluginConstants.COMMAND_LABEL)
-                aliases(*PluginConstants.COMMAND_ALIASES)
-                description(PluginConstants.COMMAND_DESCRIPTION)
-                usage(PluginConstants.COMMAND_USAGE)
+                named(BuildPluginConstants.COMMAND_LABEL)
+                aliases(*BuildPluginConstants.COMMAND_ALIASES)
+                description(BuildPluginConstants.COMMAND_DESCRIPTION)
+                usage(BuildPluginConstants.COMMAND_USAGE)
                 // Backward compatibility: the 2.0.0-alpha2 JAR used "calendar.ownAndShow"
                 // as the command permission. Existing servers may have granted this exact
                 // node via LuckPerms or similar. At runtime, the plugin checks both
                 // calendar.own AND calendar.show individually (see CalendarCommandExecutor).
-                permission(PluginConstants.PERMISSION_OWN_AND_SHOW)
+                permission(BuildPluginConstants.PERMISSION_OWN_AND_SHOW)
+            }
+
+            // Combined permission for backward compatibility with 2.0.0-alpha2 JAR.
+            // Acts as an alternative to having both calendar.own AND calendar.show.
+            permission {
+                named(BuildPluginConstants.PERMISSION_OWN_AND_SHOW)
+                description("Kombinierte Berechtigung für Kalender-Zugriff (Rückwartkompatibilität)")
+                defaultType(Permission.DefaultType.DENY_PLAYER)
             }
 
             permission {
-                named(PluginConstants.PERMISSION_OWN_CALENDAR)
-                description(PluginConstants.PERMISSION_OWN_CALENDAR_DESCRIPTION)
+                named(BuildPluginConstants.PERMISSION_OWN_CALENDAR)
+                description(BuildPluginConstants.PERMISSION_OWN_CALENDAR_DESCRIPTION)
                 defaultType(Permission.DefaultType.GRANT_PLAYER)
             }
 
             permission {
-                named(PluginConstants.PERMISSION_SHOW_CALENDAR)
-                description(PluginConstants.PERMISSION_SHOW_CALENDAR_DESCRIPTION)
+                named(BuildPluginConstants.PERMISSION_SHOW_CALENDAR)
+                description(BuildPluginConstants.PERMISSION_SHOW_CALENDAR_DESCRIPTION)
                 defaultType(Permission.DefaultType.GRANT_PLAYER)
             }
 
             permission {
-                named(PluginConstants.PERMISSION_OPEN_CALENDAR_DOORS)
-                description(PluginConstants.PERMISSION_OPEN_CALENDAR_DOORS_DESCRIPTION)
+                named(BuildPluginConstants.PERMISSION_OPEN_CALENDAR_DOORS)
+                description(BuildPluginConstants.PERMISSION_OPEN_CALENDAR_DOORS_DESCRIPTION)
                 defaultType(Permission.DefaultType.GRANT_OP)
             }
         }

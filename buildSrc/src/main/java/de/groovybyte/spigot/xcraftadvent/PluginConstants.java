@@ -1,14 +1,9 @@
 package de.groovybyte.spigot.xcraftadvent;
 
 /**
- * Single source of truth for the names and descriptions that go into
- * plugin.yml (declared in the root build.gradle.kts) and that are checked
- * at runtime (Permissions, XcraftAdvent).
- *
- * <p>Lives in buildSrc so the Gradle build classpath can reference it, and
- * is additionally compiled into the plugin jar: the root build script adds
- * this source directory to the main source set, so both sides compile the
- * exact same file.
+ * Build-time copy of plugin constants used by build.gradle.kts to generate
+ * plugin.yml. The runtime copy lives in src/main/java (same package).
+ * Keep both files in sync — they contain identical constants.
  */
 public final class PluginConstants {
 
