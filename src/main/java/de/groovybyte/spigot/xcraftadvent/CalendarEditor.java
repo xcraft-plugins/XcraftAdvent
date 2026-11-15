@@ -1,12 +1,15 @@
 package de.groovybyte.spigot.xcraftadvent;
 
+import de.groovybyte.spigot.xcraftadvent.entity.BlockLocation;
 import de.groovybyte.spigot.xcraftadvent.entity.Door;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -151,5 +154,46 @@ public class CalendarEditor {
             }
         }
         this.player = null;
+    }
+
+    /**
+     * Adds a physical chest location for a door day.
+     * The location is stored in config under {@code rewards.doorN.locations}
+     * and registered in the {@code doorLocations} map.
+     */
+    public void addDoorInventoryHolder(int day, Location location) {
+        String key = "rewards.door" + day + ".locations";
+        @SuppressWarnings("unchecked")
+        List<Location> locations = (List<Location>) (List<?>) calendarManager.config.getList(key);
+        if (locations == null) {
+            locations = new ArrayList<>();
+        }
+        locations.add(location);
+        calendarManager.config.set(key, locations);
+        calendarManager.doorLocations.put(BlockLocation.fromLocation(location), day);
+        try {
+            calendarManager.config.save(calendarManager.cfgFile);
+        } catch (IOException exception) {
+            this.plugin.getLogger().log(Level.WARNING, "config io error");
+        }
+    }
+
+    /**
+     * Removes all physical chest locations for a door day.
+     * Clears the config key and removes matching entries from the
+     * {@code doorLocations} map.
+     */
+    public void clearDoorInventoryHolder(int day) {
+        String key = "rewards.door" + day + ".locations";
+        calendarManager.config.set(key, null);
+        calendarManager.doorLocations.entrySet().removeIf(entry -> {
+            Integer doorDay = entry.getValue();
+            return doorDay == day;
+        });
+        try {
+            calendarManager.config.save(calendarManager.cfgFile);
+        } catch (IOException exception) {
+            this.plugin.getLogger().log(Level.WARNING, "config io error");
+        }
     }
 }

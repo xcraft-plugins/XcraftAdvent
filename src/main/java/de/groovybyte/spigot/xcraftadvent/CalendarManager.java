@@ -1,5 +1,6 @@
 package de.groovybyte.spigot.xcraftadvent;
 
+import de.groovybyte.spigot.xcraftadvent.entity.BlockLocation;
 import de.groovybyte.spigot.xcraftadvent.entity.Door;
 import java.io.BufferedReader;
 import java.io.File;
@@ -8,10 +9,12 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.logging.Level;
+import org.bukkit.Location;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
@@ -27,6 +30,12 @@ public class CalendarManager {
 
     protected FileConfiguration config;
     protected final Door[] doors;
+
+    /**
+     * Maps physical block locations to door numbers (1–24).
+     * Populated from config key {@code rewards.doorN.locations} on load.
+     */
+    protected final Map<BlockLocation, Integer> doorLocations = new HashMap<>();
 
     public CalendarManager(XcraftAdvent plugin, File cfgFile, File saveFile) {
         this.plugin = plugin;
@@ -44,13 +53,41 @@ public class CalendarManager {
         return doors[day - 1];
     }
 
+    /**
+     * Looks up a door by its physical block location.
+     * Returns {@code null} if no door is registered at that location.
+     */
+    public Door getDoorByLocation(BlockLocation blockLocation) {
+        if (!doorLocations.containsKey(blockLocation)) {
+            return null;
+        }
+        return getDoor(doorLocations.get(blockLocation));
+    }
+
     public void load() throws IOException {
         long startTime = System.currentTimeMillis();
         data.clear();
         config = YamlConfiguration.loadConfiguration(cfgFile);
-        for (int index = 0; index < doors.length; index++) {
-            doors[index].update(config);
+        doorLocations.clear();
+
+        int doorsLoaded = 0;
+        for (int day = 1; day <= doors.length; day++) {
+            doors[day - 1].update(config);
+
+            // Load physical door locations from config: rewards.doorN.locations
+            @SuppressWarnings("unchecked")
+            List<Location> locations = (List<Location>) (List<?>) config.getList("rewards.door" + day + ".locations");
+            if (locations != null) {
+                for (Location loc : locations) {
+                    doorLocations.put(BlockLocation.fromLocation(loc), day);
+                }
+            }
+
+            if (!doors[day - 1].isEmpty()) {
+                doorsLoaded++;
+            }
         }
+
         try (BufferedReader reader = new BufferedReader(new FileReader(saveFile))) {
             String line;
             while ((line = reader.readLine()) != null) {
@@ -64,8 +101,10 @@ public class CalendarManager {
                 );
             }
         }
-        plugin.getLogger().log(Level.INFO, "Loaded (" + data.size() + " players) in " + (System.currentTimeMillis() - startTime) + "ms");
+        plugin.getLogger().log(Level.INFO, "Loaded (" + doorsLoaded + " doors with " + doorLocations.size() + " locations) in " + (System.currentTimeMillis() - startTime) + "ms");
+        startTime = System.currentTimeMillis();
         activePlayers.replaceAll((playerId, calendar) -> getNewCalendar(calendar.getPlayer()));
+        plugin.getLogger().log(Level.INFO, "Loaded (" + data.size() + " players) in " + (System.currentTimeMillis() - startTime) + "ms");
         //in the case that there is a new player in the data, he will not be added to the active players - use rejoin
     }
 

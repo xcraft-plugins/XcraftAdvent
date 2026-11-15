@@ -58,6 +58,9 @@ public class InventoryListener implements Listener {
 		}
 
 		event.setCancelled(true);
+		// Backward compatibility: the 2.0.0-alpha2 JAR used "calendar.openDoors"
+		// for this permission. The current constant is "calendar.doors.open".
+		// If existing servers have the old permission node, update the grants.
 		if (!player.hasPermission(Permissions.OPEN_CALENDAR_DOORS)) {
 			Messages.send(player, Messages.MSG_MISSING_PERM);
 			return;

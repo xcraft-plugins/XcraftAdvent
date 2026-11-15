@@ -40,6 +40,10 @@ public class Door {
         this.rewardCmds = cfg.getStringList("rewards.door" + day + ".commands").toArray(new String[0]);
     }
 
+    public int getDay() {
+        return this.day;
+    }
+
     public int getPosition() {
         return this.position;
     }

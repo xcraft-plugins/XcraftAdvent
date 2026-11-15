@@ -4,6 +4,7 @@ import com.google.common.collect.ClassToInstanceMap;
 import com.google.common.collect.MutableClassToInstanceMap;
 import de.groovybyte.spigot.xcraftadvent.listener.CalendarCommandExecutor;
 import de.groovybyte.spigot.xcraftadvent.listener.ConnectionListener;
+import de.groovybyte.spigot.xcraftadvent.listener.DoorLocationListener;
 import de.groovybyte.spigot.xcraftadvent.listener.InventoryListener;
 import de.groovybyte.spigot.xcraftadvent.repository.CalendarLoader;
 import de.groovybyte.spigot.xcraftadvent.repository.ICalendarRepository;
@@ -72,6 +73,7 @@ public final class XcraftAdvent extends JavaPlugin implements IServiceProvider {
 
         registerEventListener(new InventoryListener(this));
         registerEventListener(new ConnectionListener(this));
+        registerEventListener(new DoorLocationListener(this));
 
         CalendarCommandExecutor commandExecutor = new CalendarCommandExecutor(calendarManager, this);
         Objects.requireNonNull(this.getCommand(CALENDAR_COMMAND_LABEL))

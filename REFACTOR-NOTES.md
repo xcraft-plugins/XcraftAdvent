@@ -1,16 +1,20 @@
 # XcraftAdvent — refactor notes
 
-## Current state (2026-11-10)
+## Current state (2026-11-15)
 
 - The service-lookup + repository refactor is **complete** on branch `new`
   (10 commits on top of the old `main`, which was deleted after this work;
   nothing is pushed yet).
+- JAR compatibility TODOs from `XcraftAdvent-2.0.0-alpha2.jar` are **complete**:
+  command permission reverted to `calendar.ownAndShow`, plugin metadata restored,
+  physical door-locations feature re-implemented.
 - Build is green: `gradlew build` + `spigotPlugin` — deprecation-free
   compile (`-Xlint:deprecation`), tests passing, jar contains `plugin.yml`
   and `PluginConstants.class`.
 - `plugin.yml` (generated): permissions in sync with `Permissions.java`
   (`calendar.own`, `calendar.show` GRANT_PLAYER; `calendar.doors.open`
-  GRANT_OP), command permission `calendar.show`, `api-version: 26.3`.
+  GRANT_OP), command permission `calendar.ownAndShow` (backward compat),
+  `api-version: 26.3`.
 - Spigot dependency: `spigot-api 26.3-R0.1-SNAPSHOT`, JDK 25 toolchain
   (26.3 requires it). API review documented in
   `SPIGOT-API-CHANGES-1.21-TO-26.3.md`.
@@ -21,6 +25,10 @@
   (backed by `CalendarManager`, main-thread scheduling);
   `PlayerCalendar implements ICalendar`; command handling in
   `listener/CalendarCommandExecutor`.
+- Physical door-locations feature: `entity/BlockLocation.java`,
+  `CalendarManager.doorLocations` map, `getDoorByLocation()`,
+  `listener/DoorLocationListener`, `CalendarEditor.addDoorInventoryHolder()`/
+  `clearDoorInventoryHolder()`, `addlocation`/`clearlocations` OP sub-commands.
 
 ## Resolution log (what was done and why)
 
@@ -82,15 +90,35 @@ the refactor notes. It was the wrong branch to rebase onto.
   hand-written.
 - **Old build config**: no version catalog, no fixed repositories — the
   build fixes on `new` supersede it.
-- **The one unmerged feature**: *physical door locations* — a
-  `BlockLocation` per world block, `rewards.doorN.locations` config lists
-  loaded into a `doorLocations` map in `CalendarManager`
-  (`getDoorByLocation`), and handlers `onPlayerClickedDoorBlock` /
-  `onPlayerOpenedDoorContainer` that open a door when a player interacts
-  with the chest at that location (plus a `Consumer<Runnable>` scheduler
-  injection, `scheduleTaskNext`/`scheduleTaskSoon`). If this feature is
-  wanted, re-implement it **cleanly on a new feature branch off `new`**
-  (e.g. `feature/door-locations`), then delete this branch.
+- **Physical door locations feature**: Already re-implemented on `new` (see
+  "Current state" above). The branch served as reference for the
+  `BlockLocation` class, `doorLocations` map, `getDoorByLocation()`, and
+  event handlers. Key differences from the branch:
+  - `BlockLocation` is a regular class on `new` (the branch uses a Java
+    record — requires JDK 16+); both have the same API.
+  - Command structure: branch uses `edit [day] addlocation/clearlocations`
+    sub-commands under `opCommand`; `new` uses top-level `addlocation`/
+    `clearlocations` sub-commands for simplicity.
+  - Event handling: branch delegates through `XcraftAdvent` methods
+    (`onPlayerClickedDoorBlock`/`onPlayerOpenedDoorContainer`); `new` uses
+    a dedicated `DoorLocationListener` following the layered architecture.
+  - Scheduler: branch injects `Consumer<Runnable>` for task scheduling;
+    `new` uses direct `BukkitScheduler` calls via service lookup.
+- **`Commands.java` structure**: The branch's `Commands` class handles all
+  command logic in one file with `opCommand()` containing all OP sub-commands
+  (`dbg`, `edit`, `addcmd`, `clearcmds`, `addlocation`, `clearlocations`,
+  `test`). The current `CalendarCommandExecutor` splits this more cleanly
+  with separate methods and better error handling.
+- **`PluginMain.java`**: The branch's entry point implements `Listener`
+  directly and delegates to `XcraftAdvent` methods. The current
+  `XcraftAdvent` implements `IServiceProvider` and delegates to separate
+  listener classes, following the layered architecture.
+- **`CalendarEditor`**: The branch's editor has the same
+  `addDoorInventoryHolder`/`clearDoorInventoryHolder` methods, but uses
+  decompiler artifacts in `clearDoorInventoryHolder` (stream filter/forEach
+  instead of direct removal). The current implementation is cleaner.
+- **Branch can be deleted** after confirmation that the re-implemented
+  feature works correctly on a real server.
 
 ## Deprecated APIs found (26.3) and replacements
 
@@ -132,6 +160,105 @@ the refactor notes. It was the wrong branch to rebase onto.
 
 Full context in `SPIGOT-API-CHANGES-1.21-TO-26.3.md`.
 
+## JAR compatibility requirements (2.0.0-alpha2)
+
+The released artifact `XcraftAdvent-2.0.0-alpha2.jar` is the **pre-refactor** build.
+The new version on branch `new` must remain **compatible** with servers running that JAR.
+The following items must be addressed so that existing server configurations continue to work.
+
+### Command permission: `calendar.ownAndShow` ✓
+
+The JAR uses a single combined permission `calendar.ownAndShow` for the command
+(declared in `plugin.yml`, checked at runtime in `onCommand`, `onPlayerJoin`,
+and `onCalendarDoorOpen`). The current source splits this into `calendar.own`
+and `calendar.show`, checked together at runtime.
+
+- **DONE:** Changed the command permission in `plugin.yml` back to `calendar.ownAndShow`
+  via `PluginConstants.PERMISSION_OWN_AND_SHOW`. Added backward-compatibility comments
+  at all runtime check sites (`CalendarCommandExecutor`, `ConnectionListener`,
+  `InventoryListener`, `DoorLocationListener`) explaining that while the runtime checks
+  both `calendar.own` AND `calendar.show`, the `plugin.yml` command permission remains
+  `calendar.ownAndShow` for backward compatibility with existing LuckPerms grants.
+
+### Plugin author and description ✓
+
+| Field | JAR (alpha2) | Current source |
+|---|---|---|
+| `authors` | `ShirleyNekoDev` | `ShirleyNekoDev` (reverted) |
+| `description` | `Advent calendar plugin.` | `Advent calendar plugin.` (reverted) |
+
+- **DONE:** Reverted `authors` to `ShirleyNekoDev` and `description` to
+  `Advent calendar plugin.` in `build.gradle.kts` (`spigot.desc {}` block)
+  to match the released artifact metadata.
+
+### Physical door-locations feature ✓
+
+The JAR includes the **physical door-locations** feature that was dropped during
+the refactor. This feature allows placing physical chests in the world that act
+as advent calendar doors. The following components were present in the JAR and
+have been re-implemented in the current source:
+
+| Component | JAR location | Current implementation |
+|---|---|---|
+| `BlockLocation` class | standalone class | `entity/BlockLocation.java` — regular class `(World, x, y, z)` with `fromLocation()`/`toLocation()`, `equals()`, `hashCode()`, `toString()` |
+| `CalendarManager.doorLocations` | `Map<BlockLocation, Integer>` field | `CalendarManager.doorLocations` — same map, cleared and loaded in `load()` |
+| `CalendarManager.getDoorByLocation(BlockLocation)` | Method | `CalendarManager.getDoorByLocation()` — same signature |
+| `XcraftAdvent.onPlayerInteract()` | Event handler | `listener/DoorLocationListener.onPlayerInteract()` — handles right-click block |
+| `XcraftAdvent.onInventoryOpen()` | Event handler | `listener/DoorLocationListener.onInventoryOpen()` — handles chest open |
+| `CalendarEditor.addDoorInventoryHolder(int, Location)` | Method | `CalendarEditor.addDoorInventoryHolder()` — same signature |
+| `CalendarEditor.clearDoorInventoryHolder(int)` | Method | `CalendarEditor.clearDoorInventoryHolder()` — same signature |
+| `opCommand` sub-commands | `addlocation`, `clearlocations` | `CalendarCommandExecutor` — top-level sub-commands |
+
+The config key is `rewards.doorN.locations` (loaded in `CalendarManager.load()`).
+
+- **DONE:** Re-implemented the physical door-locations feature on `new`, following
+  the current layered architecture. Used the JAR bytecode and `feature/v2-rewrite`
+  branch as reference. Key differences from the JAR:
+  1. `BlockLocation` is a regular class (not a record) for broader JDK compatibility.
+  2. Event handlers are in a dedicated `DoorLocationListener` (layered architecture)
+     rather than in `XcraftAdvent`.
+  3. Commands use top-level `addlocation`/`clearlocations` sub-commands rather than
+     nested under `edit [day]`.
+  4. `DoorLocationListener` checks both `calendar.own` AND `calendar.show` permissions
+     (matching the split runtime checks) with backward-compatibility comments.
+  5. `CalendarEditor.clearDoorInventoryHolder()` uses a cleaner implementation than
+     the branch's stream-based approach.
+  6. `Door.getDay()` method added to support door opening from physical locations.
+
+### Removed compile-time flags
+
+Two `public static final boolean` flags existed in the JAR's `XcraftAdvent` class.
+Both were set to `false` (compile-time constants), so the JVM inlined the values
+and the feature code was optimized away entirely — the bytecode contains no
+`getstatic` references to these fields.
+
+#### `ENABLE_COMMAND_CALENDAR_ANNOUNCEMENT = false`
+
+When `true`, running `/advent` would announce the current date-checker state
+to the player (e.g., "DateChecker: day=15, isCalendarTime=true").
+This was useful for debugging but was disabled in the released build.
+
+**Behavior when enabled:** After resolving the player's calendar, the command
+would send the `IDateChecker.toString()` output as a chat message to the player
+and log it to the server console. In the current code, this information is only
+available through the OP debug command (`/advent dbg ...`).
+
+#### `ENABLE_COMMAND_CALENDAR_VIEW = false`
+
+When `true`, running `/advent` without arguments as a non-OP player would
+automatically open the calendar inventory GUI. Since it was `false`, the
+command simply returned success without opening anything — players had to
+rejoin or use the physical door-locations feature to access their calendar.
+
+**Behavior when enabled:** After the OP-check branch, the non-OP path would
+call `CalendarManager.get(player).getCalendar()` and open the inventory
+(via `Player.openInventory()`). This is the lambda method `lambda$onCommand$3`
+in the bytecode.
+
+**Note:** Neither flag needs to be re-added unless there is a desire to make
+them configurable. The current behavior (no announcement, no auto-open on
+`/advent`) matches the released JAR's effective behavior.
+
 ## Upcoming steps / TODO
 
 - **TODO (think about it):** async loading of the player calendar.
@@ -150,9 +277,8 @@ Full context in `SPIGOT-API-CHANGES-1.21-TO-26.3.md`.
 - Smoke test on a real 26.3 Spigot server: join → calendar opens → door
   opens → rewards drop; confirm the server accepts `api-version: '26.3'`
   and that `buildTools { versions("26.3") }` resolves.
-- Decide on `feature/door-locations`: re-implement the physical-chest
-  feature from `feature/v2-rewrite` cleanly (or drop it and delete both
-  kept branches).
+- The physical door-locations feature is now implemented (see "JAR compatibility
+  requirements" above for details).
 - Remote cleanup: delete the stale remote branches
   (`origin/main`, `origin/master`, `origin/feature/service-provider`,
   `origin/feature/layered-architecture`,

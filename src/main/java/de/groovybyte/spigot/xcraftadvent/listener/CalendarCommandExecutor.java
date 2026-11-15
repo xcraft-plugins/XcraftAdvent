@@ -8,6 +8,7 @@ import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 import org.bukkit.GameMode;
+import org.bukkit.block.Block;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
@@ -68,6 +69,51 @@ public class CalendarCommandExecutor implements CommandExecutor {
 				}
 			}
 			return true;
+		} else if (args[0].equalsIgnoreCase("addlocation")) {
+			// Adds the block the player is targeting as a physical door location
+			if (args.length < 2) {
+				this.message(player, "Error: missing day");
+				this.message(player, "use \"addlocation <day>\" (target a block first)");
+				return false;
+			}
+			try {
+				int day = Integer.parseInt(args[1]);
+				if (day < 1 || day > 24) {
+					throw new NumberFormatException("not a day from the calendar");
+				}
+				Block targetBlock = player.getTargetBlockExact(5);
+				if (targetBlock == null) {
+					this.message(player, "Error: could not find target block, look at a block and try again");
+					return false;
+				}
+				this.calendarManager.EDITOR.addDoorInventoryHolder(day, targetBlock.getLocation());
+				this.message(player, "Added location for door " + day + " at " + targetBlock.getLocation());
+			} catch (NumberFormatException exception) {
+				this.message(player, "Error: " + exception.getMessage());
+				this.message(player, "use \"addlocation <day>\"");
+				return false;
+			}
+			return true;
+		} else if (args[0].equalsIgnoreCase("clearlocations")) {
+			// Clears all physical door locations for a given day
+			if (args.length < 2) {
+				this.message(player, "Error: missing day");
+				this.message(player, "use \"clearlocations <day>\"");
+				return false;
+			}
+			try {
+				int day = Integer.parseInt(args[1]);
+				if (day < 1 || day > 24) {
+					throw new NumberFormatException("not a day from the calendar");
+				}
+				this.calendarManager.EDITOR.clearDoorInventoryHolder(day);
+				this.message(player, "Cleared locations for door " + day);
+			} catch (NumberFormatException exception) {
+				this.message(player, "Error: " + exception.getMessage());
+				this.message(player, "use \"clearlocations <day>\"");
+				return false;
+			}
+			return true;
 		}
 		return false;
 	}
@@ -98,7 +144,11 @@ public class CalendarCommandExecutor implements CommandExecutor {
 				}
 			}
 
-			// opening the calendar requires both owning and showing it
+			// Backward compatibility: plugin.yml declares the command permission as
+			// "calendar.ownAndShow" (matching the 2.0.0-alpha2 JAR) so that existing
+			// LuckPerms grants continue to work. However, at runtime we check both
+			// calendar.own AND calendar.show individually so that servers migrated to
+			// the split permissions also work.
 			if (player.hasPermission(Permissions.OWN_CALENDAR)
 					&& player.hasPermission(Permissions.SHOW_CALENDAR)) {
 				if (!this.calendarManager.isActive(player)) {

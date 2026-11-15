@@ -54,8 +54,9 @@ tasks {
 
     spigot {
         desc {
-            authors("Salami555")
-            description("Adventskalender-Plugin")
+            // Reverted to match the released 2.0.0-alpha2 JAR metadata
+            authors("ShirleyNekoDev")
+            description("Advent calendar plugin.")
 
             main("de.groovybyte.spigot.xcraftadvent.XcraftAdvent")
             // valid api-versions are 1.13 up to the running server version
@@ -67,9 +68,11 @@ tasks {
                 aliases(*PluginConstants.COMMAND_ALIASES)
                 description(PluginConstants.COMMAND_DESCRIPTION)
                 usage(PluginConstants.COMMAND_USAGE)
-                // opening the calendar additionally requires calendar.own;
-                // both are checked at runtime in CalendarCommandExecutor
-                permission(PluginConstants.PERMISSION_SHOW_CALENDAR)
+                // Backward compatibility: the 2.0.0-alpha2 JAR used "calendar.ownAndShow"
+                // as the command permission. Existing servers may have granted this exact
+                // node via LuckPerms or similar. At runtime, the plugin checks both
+                // calendar.own AND calendar.show individually (see CalendarCommandExecutor).
+                permission(PluginConstants.PERMISSION_OWN_AND_SHOW)
             }
 
             permission {
