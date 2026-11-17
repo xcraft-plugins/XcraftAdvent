@@ -111,6 +111,48 @@ public class CalendarEditor {
         }
     }
 
+    /**
+     * Adds an item to a door's rewards. The item is appended to the existing
+     * list (item1, item2, ...).
+     */
+    public void addItem(int day, ItemStack item) {
+        if (item == null || item.getType() == Material.AIR) {
+            return;
+        }
+        int itemNumber = 1;
+        String path = "rewards.door" + day + ".item" + itemNumber;
+        while (this.calendarManager.config.contains(path)) {
+            itemNumber++;
+            path = "rewards.door" + day + ".item" + itemNumber;
+        }
+        this.calendarManager.config.set(path, item);
+        this.calendarManager.doors[day - 1].update(this.calendarManager.config);
+        try {
+            this.calendarManager.config.save(this.calendarManager.cfgFile);
+        } catch (IOException exception) {
+            this.plugin.getLogger().log(Level.WARNING, "config io error");
+        }
+    }
+
+    /**
+     * Removes all items from a door's rewards.
+     */
+    public void clearItems(int day) {
+        int itemNumber = 1;
+        String path = "rewards.door" + day + ".item" + itemNumber;
+        while (this.calendarManager.config.contains(path)) {
+            this.calendarManager.config.set(path, null);
+            itemNumber++;
+            path = "rewards.door" + day + ".item" + itemNumber;
+        }
+        this.calendarManager.doors[day - 1].update(this.calendarManager.config);
+        try {
+            this.calendarManager.config.save(this.calendarManager.cfgFile);
+        } catch (IOException exception) {
+            this.plugin.getLogger().log(Level.WARNING, "config io error");
+        }
+    }
+
     public void startEditing(Player player) {
         if (this.player != null) {
             player.sendMessage("editing in progress");

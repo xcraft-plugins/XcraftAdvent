@@ -61,6 +61,12 @@ public class CalendarCommandExecutor implements CommandExecutor {
 						case "clearcmds":
 							this.calendarManager.EDITOR.clearCommands(day);
 							break;
+						case "add":
+							this.calendarManager.EDITOR.addItem(day, player.getInventory().getItemInMainHand());
+							break;
+						case "clear":
+							this.calendarManager.EDITOR.clearItems(day);
+							break;
 						case "addlocation":
 							handleAddLocation(player, day);
 							break;
@@ -75,7 +81,7 @@ public class CalendarCommandExecutor implements CommandExecutor {
 					}
 				} catch (ArrayIndexOutOfBoundsException | NumberFormatException exception) {
 					this.message(player, "Error: " + exception.getMessage());
-					this.message(player, "use \"edit [day] addcmd/clearcmds/addlocation/clearlocations/test ([command])\"");
+					this.message(player, "use \"edit [day] addcmd/clearcmds/add/clear/addlocation/clearlocations/test ([command])\"");
 					return false;
 				}
 			}
