@@ -47,10 +47,10 @@ public class InventoryListener implements Listener {
 		if (!isChestInventory(clickedInventory)) {
 			return;
 		}
-//		if (player.isOp() && calendarManager.EDITOR.isEditing(player)) {
-//			calendarManager.EDITOR.edit(event);
-//			return;
-//		}
+		if (player.isOp() && calendarManager.EDITOR.isEditing(player)) {
+			calendarManager.EDITOR.edit(event);
+			return;
+		}
 
 		ICalendar calendar = calendarRepository.getCalendar(player);
 		if (calendar == null || !calendar.matches(event.getInventory())) {

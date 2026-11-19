@@ -21,6 +21,17 @@ public final class XcraftAdvent extends JavaPlugin implements IServiceProvider {
     public final static boolean DEBUG = true;
     public final static String CALENDAR_COMMAND_LABEL = PluginConstants.COMMAND_LABEL;
 
+    // TODO: ENABLE_COMMAND_CALENDAR_ANNOUNCEMENT — when enabled, /advent should display
+    // a calendar announcement message (current date, doors remaining) instead of
+    // opening the inventory GUI. The JAR had this flag hardcoded to false.
+    // public final static boolean ENABLE_COMMAND_CALENDAR_ANNOUNCEMENT = false;
+
+    // TODO: ENABLE_COMMAND_CALENDAR_VIEW — when enabled, /advent should use an
+    // alternative calendar view implementation abstracted from the inventory GUI.
+    // ICalendarView / InventoryCalendarView stubs exist as placeholders for this.
+    // The JAR had this flag hardcoded to false.
+    // public final static boolean ENABLE_COMMAND_CALENDAR_VIEW = false;
+
     private final ClassToInstanceMap<Object> services = MutableClassToInstanceMap.create();
     protected CalendarManager calendarManager;
 

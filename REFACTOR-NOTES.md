@@ -1,6 +1,6 @@
 # XcraftAdvent — refactor notes
 
-## Current state (2026-11-15)
+## Current state (2026-11-19)
 
 - Layered architecture on branch `main`: `IServiceProvider` (Guava
   `ClassToInstanceMap`), `ICalendarRepository`/`CalendarLoader`,
@@ -19,6 +19,8 @@
   `calendar.own` AND `calendar.show` via `Permissions.hasCalendarAccess()`.
 - Physical door-locations feature: `BlockLocation`, `doorLocations` map,
   `DoorLocationListener`, `edit [day] addlocation/clearlocations` OP commands.
+- Editor GUI click-to-navigate between days: restored and working.
+- `PlayerCalendar.open()`: inventory slot updated after door opening (matches alpha2 JAR behavior).
 
 ## Resolution log (summary)
 
@@ -39,18 +41,6 @@ reference for the physical door-locations re-implementation. Other branches
 (`main`, `master`, `feature/service-provider`, `feature/layered-architecture`)
 were deleted — content fully incorporated.
 
-## JAR compatibility (2.0.0-alpha2) — complete
-
-All compatibility items are done:
-- **Command permission**: `calendar.ownAndShow` in plugin.yml, `Permissions.hasCalendarAccess()`
-  accepts `calendar.ownAndShow` OR (`calendar.own` AND `calendar.show`).
-- **Plugin metadata**: author `ShirleyNekoDev`, description `Advent calendar plugin.`.
-- **Physical door-locations**: `BlockLocation`, `doorLocations` map,
-  `DoorLocationListener`, `edit [day] addlocation/clearlocations` OP commands.
-- **Compile-time flags**: `ENABLE_COMMAND_CALENDAR_ANNOUNCEMENT` and
-  `ENABLE_COMMAND_CALENDAR_VIEW` were both `false` in the released JAR —
-  no action needed.
-
 ## Deprecated APIs (26.3)
 
 Only `TextComponent.fromLegacyText` affected the plugin (fixed in `Messages.java`).
@@ -58,15 +48,14 @@ Full API review in `SPIGOT-API-CHANGES-1.21-TO-26.3.md`.
 
 ## Upcoming steps / TODO
 
-- **Consider:** async calendar loading — currently main-thread only (Bukkit
-  inventory safety). Only worth it if join-time work becomes heavy.
 - **Required:** Smoke test on a real 26.3 Spigot server: join → calendar opens
   → door opens → rewards drop; confirm `api-version: '26.3'` works.
 - **Required:** Remote cleanup — delete stale remote branches and re-point
   `origin/HEAD`, then push `main`.
-- **Optional future work:** `view/ICalendarView` + `InventoryCalendarView`
-  (view abstraction), `repository/CalendarCache` (caching repository),
-  `PlayerCalendar.set(int, boolean)` (bit-op stub).
+- **Optional future work:** implement `ENABLE_COMMAND_CALENDAR_ANNOUNCEMENT` flag
+  (TODO in `XcraftAdvent.java`), implement `ENABLE_COMMAND_CALENDAR_VIEW` flag
+  with `ICalendarView`/`InventoryCalendarView` stubs, wire up `CalendarCache`
+  as a caching repository layer.
 
 ## Build config — verified working
 

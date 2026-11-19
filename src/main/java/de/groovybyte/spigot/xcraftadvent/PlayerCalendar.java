@@ -116,6 +116,7 @@ public final class PlayerCalendar implements ICalendar {
 			meta.setLore(Collections.singletonList(Messages.ITEM_OPENED));
 			item.setItemMeta(meta);
 			this.doors.put(item, day);
+			this.calendar.setItem(this.calendarManager.getDoor(day).getPosition(), item);
 			this.player.playSound(this.player.getEyeLocation(), Sound.ENTITY_PLAYER_LEVELUP, 0.8f, 1f);
 		}
 	}
