@@ -182,7 +182,7 @@ public class CalendarEditor {
                     .asList(this.inventory.getContents())
                     .stream()
                     .filter((ItemStack itemStack) -> (itemStack != null))
-                    .filter((ItemStack itemStack) -> !PlayerCalendar.isAir(itemStack))
+                    .filter((ItemStack itemStack) -> itemStack.getType() != Material.AIR && itemStack.getAmount() > 0)
                     .collect(Collectors.toList());
             for (int index = 0; index < items.size(); index++) {
                 this.calendarManager.config.set("rewards.door" + this.editingDay + ".item" + (index + 1), items.get(index));

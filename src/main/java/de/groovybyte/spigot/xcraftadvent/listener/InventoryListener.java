@@ -5,7 +5,7 @@ import de.groovybyte.spigot.xcraftadvent.IServiceProvider;
 import de.groovybyte.spigot.xcraftadvent.Messages;
 import de.groovybyte.spigot.xcraftadvent.Permissions;
 import de.groovybyte.spigot.xcraftadvent.entity.ICalendar;
-import de.groovybyte.spigot.xcraftadvent.repository.ICalendarRepository;
+import de.groovybyte.spigot.xcraftadvent.view.InventoryCalendarView;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bukkit.entity.HumanEntity;
@@ -22,13 +22,11 @@ import org.bukkit.plugin.java.JavaPlugin;
 public class InventoryListener implements Listener {
 
 	private final Logger logger;
-	private final ICalendarRepository calendarRepository;
 	private final CalendarManager calendarManager;
 	private final JavaPlugin plugin;
 
 	public InventoryListener(IServiceProvider services) {
 		this.logger = services.getService(Logger.class);
-		this.calendarRepository = services.getService(ICalendarRepository.class);
 		this.calendarManager = services.getService(CalendarManager.class);
 		this.plugin = services.getService(JavaPlugin.class);
 	}
@@ -52,8 +50,11 @@ public class InventoryListener implements Listener {
 			return;
 		}
 
-		ICalendar calendar = calendarRepository.getCalendar(player);
-		if (calendar == null || !calendar.matches(event.getInventory())) {
+		if (!(event.getInventory().getHolder() instanceof InventoryCalendarView view)) {
+			return;
+		}
+		ICalendar calendar = view.getCalendar();
+		if (!calendar.getOwner().getUniqueId().equals(player.getUniqueId())) {
 			return;
 		}
 
@@ -67,8 +68,8 @@ public class InventoryListener implements Listener {
 		}
 
 		ItemStack clickedItem = event.getCurrentItem();
-		if (calendar.isValidDoor(clickedItem)) {
-			int day = calendar.getClickedDay(clickedItem);
+		if (view.isValidDoor(clickedItem)) {
+			int day = view.getClickedDay(clickedItem);
 
 			// deferred to the next tick: inventories must not be mutated
 			// while the click event is still being processed
@@ -82,7 +83,7 @@ public class InventoryListener implements Listener {
 				} else if (!canOpen) {
 					Messages.send(player, Messages.MSG_CLOSED, day);
 				} else {
-					calendar.open(clickedItem, day);
+					view.openDoor(day);
 				}
 			});
 		}

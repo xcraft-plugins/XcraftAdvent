@@ -4,9 +4,9 @@ import de.groovybyte.spigot.xcraftadvent.CalendarManager;
 import de.groovybyte.spigot.xcraftadvent.IServiceProvider;
 import de.groovybyte.spigot.xcraftadvent.Messages;
 import de.groovybyte.spigot.xcraftadvent.Permissions;
-import de.groovybyte.spigot.xcraftadvent.PlayerCalendar;
 import de.groovybyte.spigot.xcraftadvent.entity.BlockLocation;
 import de.groovybyte.spigot.xcraftadvent.entity.Door;
+import de.groovybyte.spigot.xcraftadvent.entity.ICalendar;
 import org.bukkit.GameMode;
 import org.bukkit.block.Block;
 import org.bukkit.entity.HumanEntity;
@@ -78,8 +78,7 @@ public class DoorLocationListener implements Listener {
      * active status, and game mode.
      *
      * <p>For physical door-locations the calendar inventory is not open,
-     * so we call {@code Door.reward()} and {@code PlayerCalendar.setOpen()}
-     * directly instead of going through {@code ICalendar.open()}.
+     * so the calendar state is updated directly without an inventory view.
      */
     private void openCalendarDoor(Player player, Door door) {
         // Backward compatibility: accepts either the combined "calendar.ownAndShow"
@@ -100,7 +99,7 @@ public class DoorLocationListener implements Listener {
             return;
         }
 
-        PlayerCalendar calendar = calendarManager.get(player);
+        ICalendar calendar = calendarManager.get(player);
         if (calendar == null) {
             return;
         }
@@ -111,16 +110,11 @@ public class DoorLocationListener implements Listener {
         } else if (!calendar.canOpen(day)) {
             Messages.send(player, Messages.MSG_CLOSED, day);
         } else {
-            // Physical door location: no calendar inventory is open, so we
-            // reward the player and mark the door as open directly
-            if (!door.reward(player)) {
-                Messages.send(player, Messages.MSG_MISSING_CONTENT);
-            } else {
-                calendar.setOpen(day);
-                // Refresh the calendar inventory so the next time it opens
-                // the door appears as opened
-                calendar.getCalendar();
-            }
+           // Physical door location: no calendar inventory is open, so update
+           // the calendar state directly.
+           if (!calendar.open(day)) {
+               Messages.send(player, Messages.MSG_MISSING_CONTENT);
+           }
         }
     }
 }

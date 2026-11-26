@@ -20,7 +20,7 @@
 - Physical door-locations feature: `BlockLocation`, `doorLocations` map,
   `DoorLocationListener`, `edit [day] addlocation/clearlocations` OP commands.
 - Editor GUI click-to-navigate between days: restored and working.
-- `PlayerCalendar.open()`: inventory slot updated after door opening (matches alpha2 JAR behavior).
+- `PlayerCalendar.open(day)`: rewards and calendar state are updated independently of inventory rendering.
 
 ## Resolution log (summary)
 
@@ -32,6 +32,22 @@ over deprecated `fromLegacyText`, split permissions (`calendar.own` +
 `calendar.show`) with `calendar.ownAndShow` as backward-compat alternative.
 Identifier cleanup (`p`→`player`, `man`→`calendarManager`, etc.) applied
 throughout. Full commit history available via `git log`.
+
+## Calendar view separation (2026-11-26)
+
+`ICalendar` now exposes calendar state and door-opening operations without
+depending on inventory APIs. `PlayerCalendar` owns player-specific calendar
+state and rewards, while `ICalendarView` defines the presentation contract:
+provide the calendar, show it, update it, and open a door.
+
+`InventoryCalendarView` implements that contract and `InventoryHolder`, keeping
+inventory creation, door-item mapping, rendering, refreshes, and opening sound
+feedback out of the model. Inventory clicks are handled by the view, while the
+calendar command creates and shows an inventory view; this leaves room for
+other presentations such as a message-based view. Physical-door interactions
+continue to use the calendar model directly.
+
+Validation: `bash ./gradlew test` passed, and `git diff --check` passed.
 
 ## Legacy branches
 
@@ -53,9 +69,8 @@ Full API review in `SPIGOT-API-CHANGES-1.21-TO-26.3.md`.
 - **Required:** Remote cleanup — delete stale remote branches and re-point
   `origin/HEAD`, then push `main`.
 - **Optional future work:** implement `ENABLE_COMMAND_CALENDAR_ANNOUNCEMENT` flag
-  (TODO in `XcraftAdvent.java`), implement `ENABLE_COMMAND_CALENDAR_VIEW` flag
-  with `ICalendarView`/`InventoryCalendarView` stubs, wire up `CalendarCache`
-  as a caching repository layer.
+  (TODO in `XcraftAdvent.java`), implement `ENABLE_COMMAND_CALENDAR_VIEW` flag,
+  and wire up `CalendarCache` as a caching repository layer.
 
 ## Build config — verified working
 

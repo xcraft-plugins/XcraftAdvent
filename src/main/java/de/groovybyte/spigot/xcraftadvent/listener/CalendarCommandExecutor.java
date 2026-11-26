@@ -4,6 +4,7 @@ import de.groovybyte.spigot.xcraftadvent.CalendarManager;
 import de.groovybyte.spigot.xcraftadvent.Messages;
 import de.groovybyte.spigot.xcraftadvent.Permissions;
 import de.groovybyte.spigot.xcraftadvent.entity.BlockLocation;
+import de.groovybyte.spigot.xcraftadvent.view.InventoryCalendarView;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.logging.Level;
@@ -153,7 +154,7 @@ public class CalendarCommandExecutor implements CommandExecutor {
 				if (!this.calendarManager.isActive(player)) {
 					this.message(player, Messages.MSG_WRONG_TIME);
 				} else if (player.getGameMode().equals(GameMode.SURVIVAL)) {
-					runSynced(() -> player.openInventory(this.calendarManager.get(player).getCalendar()));
+					runSynced(() -> new InventoryCalendarView(this.calendarManager.get(player)).show());
 				} else {
 					this.message(player, Messages.MSG_WRONG_GAMEMODE);
 				}

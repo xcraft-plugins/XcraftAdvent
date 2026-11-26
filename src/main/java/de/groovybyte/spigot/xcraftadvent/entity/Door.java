@@ -16,7 +16,6 @@ public class Door {
 
     protected final XcraftAdvent plugin;
     protected final int day;
-    protected final int position;
 
     protected ItemStack[] rewardItems = new ItemStack[0];
     protected String[] rewardCmds = new String[0];
@@ -24,7 +23,6 @@ public class Door {
     public Door(XcraftAdvent plugin, int day) {
         this.plugin = plugin;
         this.day = day--;
-        this.position = 10 + day + 2 * (day / 7) + ((day > 20) ? 2 : 0);
     }
 
     public void update(Configuration cfg) {
@@ -44,9 +42,6 @@ public class Door {
         return this.day;
     }
 
-    public int getPosition() {
-        return this.position;
-    }
 
     public boolean hasItems() {
         return this.rewardItems.length != 0;
