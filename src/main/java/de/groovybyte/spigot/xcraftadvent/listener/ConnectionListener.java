@@ -35,7 +35,8 @@ public class ConnectionListener implements Listener {
 		if (player.hasPermission(Permissions.OWN_AND_SHOW)
 				|| player.hasPermission(Permissions.SHOW_CALENDAR)) {
 			if (calendar.hasClosedDoors()) {
-				Messages.notifyAboutUnopenedDoors(player);
+				Messages.notifyAboutUnopenedDoors(player, calendar);
+//				Messages.send(player, Messages.MSG_COMMAND_INFO);
 
 				if (player.getGameMode().equals(GameMode.SURVIVAL)) {
 					player.performCommand(XcraftAdvent.CALENDAR_COMMAND_LABEL);

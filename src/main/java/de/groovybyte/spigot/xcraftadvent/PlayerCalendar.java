@@ -4,7 +4,10 @@ import de.groovybyte.spigot.xcraftadvent.entity.ICalendar;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.logging.Level;
+import java.util.stream.IntStream;
+
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.Sound;
@@ -123,13 +126,7 @@ public final class PlayerCalendar implements ICalendar {
 
 	@Override
 	public boolean hasClosedDoors() {
-		int day = 0;
-		while (canOpen(++day)) {
-			if (!isOpen(day)) {
-				return true;
-			}
-		}
-		return false;
+		return getNumberOfOpenableDays() > 0;
 	}
 
 	public void setOpen(int day) {
@@ -154,6 +151,20 @@ public final class PlayerCalendar implements ICalendar {
 	@Override
 	public boolean canOpen(int day) {
 		return day <= this.genDay && day <= 24;
+	}
+
+	public OptionalInt getFirstUnopenedDay() {
+    	return openableDays().filter(day ->!isOpen(day)).findFirst();
+	}
+	public int getNumberOfOpenableDays() {
+		return (int) openableDays().filter(day -> !isOpen(day)).count();
+	}
+
+	IntStream days() {
+		return IntStream.range(1, 24);
+	}
+	IntStream openableDays() {
+		return IntStream.range(1, this.genDay);
 	}
 
 	public Inventory getCalendar() {

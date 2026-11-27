@@ -8,6 +8,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
+
+import de.groovybyte.spigot.xcraftadvent.entity.ICalendar;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -56,15 +58,15 @@ public class CalendarCommandExecutor implements CommandExecutor {
 					switch (args[2].toLowerCase()) {
 						case "addcmd":
 							this.calendarManager.EDITOR.addCommand(day,
-									Arrays.asList(args).subList(3, args.length).stream().collect(Collectors.joining(" ")));
+                                    String.join(" ", Arrays.asList(args).subList(3, args.length)));
 							break;
 						case "clearcmds":
 							this.calendarManager.EDITOR.clearCommands(day);
 							break;
-						case "add":
+						case "additem":
 							this.calendarManager.EDITOR.addItem(day, player.getInventory().getItemInMainHand());
 							break;
-						case "clear":
+						case "clearitems":
 							this.calendarManager.EDITOR.clearItems(day);
 							break;
 						case "addlocation":
@@ -81,7 +83,7 @@ public class CalendarCommandExecutor implements CommandExecutor {
 					}
 				} catch (ArrayIndexOutOfBoundsException | NumberFormatException exception) {
 					this.message(player, "Error: " + exception.getMessage());
-					this.message(player, "use \"edit [day] addcmd/clearcmds/add/clear/addlocation/clearlocations/test ([command])\"");
+					this.message(player, "use \"edit [day] (addcmd/clearcmds/additem/clearitems/addlocation/clearlocations/test ([command]))\"");
 					return false;
 				}
 			}
@@ -135,14 +137,27 @@ public class CalendarCommandExecutor implements CommandExecutor {
 
 	@Override
 	public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-		if (args.length > 0 && args[0].equalsIgnoreCase("reload")) {
+		if (sender.isOp() && args.length > 0 && args[0].equalsIgnoreCase("reload")) {
 			reloadCalendarSettings();
 			return true;
 		}
 		if (sender instanceof Player player) {
-			if (args.length > 0 && player.isOp()) {
-				if (this.opCommand(player, args)) {
-					return true;
+			if (args.length > 0) {
+				if(player.isOp()) {
+					if (this.opCommand(player, args)) {
+						return true;
+					}
+				}
+				switch(args[1].toLowerCase()) {
+					case "last":
+						ICalendar calendar = this.calendarManager.get(player);
+						if(calendar != null)
+							if(!Messages.notifyAboutUnopenedDoors(player, calendar)) {
+								Messages.send(player, Messages.MSG_NO_UNOPENED_DOORS);
+							}
+						break;
+					default:
+						return false;
 				}
 			}
 

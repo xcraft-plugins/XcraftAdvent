@@ -1,9 +1,9 @@
 package de.groovybyte.spigot.xcraftadvent;
 
 /**
- * Runtime copy of plugin constants used by Permissions, XcraftAdvent, and
- * other classes. The build-time copy lives in buildSrc (same package).
- * Keep both files in sync — they contain identical constants.
+ * Shared constants used by Permissions, XcraftAdvent, and other classes.
+ * A duplicate copy exists in the build script source set so the build
+ * configuration can reference the same values when generating plugin.yml.
  */
 public final class PluginConstants {
 

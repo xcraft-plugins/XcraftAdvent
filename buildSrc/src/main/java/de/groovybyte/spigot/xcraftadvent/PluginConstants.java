@@ -1,8 +1,8 @@
 package de.groovybyte.spigot.xcraftadvent;
 
 /**
- * Build-time copy of plugin constants used by build.gradle.kts to generate
- * plugin.yml. The runtime copy lives in src/main/java (same package).
+ * Build-time copy of plugin constants used by the build script to generate
+ * plugin.yml. The runtime copy lives in the main source set (same package).
  * Keep both files in sync — they contain identical constants.
  */
 public final class PluginConstants {

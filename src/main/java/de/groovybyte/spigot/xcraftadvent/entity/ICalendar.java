@@ -1,5 +1,6 @@
 package de.groovybyte.spigot.xcraftadvent.entity;
 
+import java.util.OptionalInt;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -48,4 +49,15 @@ public interface ICalendar {
 	 * @param day  the calendar day (1-24)
 	 */
 	public void open(ItemStack item, int day);
+
+	/**
+	 * @return the first day that can be opened but hasn't been opened yet,
+	 * or empty if all openable doors are already opened
+	 */
+	public OptionalInt getFirstUnopenedDay();
+
+	/**
+	 * @return the number of doors that can be opened but haven't been opened yet
+	 */
+	public int getNumberOfOpenableDays();
 }

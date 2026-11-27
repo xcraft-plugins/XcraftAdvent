@@ -1,9 +1,12 @@
 package de.groovybyte.spigot.xcraftadvent;
 
+import de.groovybyte.spigot.xcraftadvent.entity.ICalendar;
 import net.md_5.bungee.api.chat.BaseComponent;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
+
+import java.util.OptionalInt;
 
 public final class Messages {
 
@@ -27,7 +30,9 @@ public final class Messages {
 	public final static String MSG_WRONG_TIME = "Du kannst den Adventskalender nicht mehr öffnen.";
 	public final static String MSG_WRONG_GAMEMODE = "Du solltest die Türchen nur im Survival-Modus öffnen.";
 	public final static String MSG_UNOPENED_DOORS = "Du hast noch ungeöffnete Kalendertürchen.";
+	public final static String MSG_NO_UNOPENED_DOORS = "Du hast keine ungeöffneten Kalendertürchen.";
 	public final static String MSG_COMMAND_INFO = "Du kannst den Adventskalender mit /advent öffnen.";
+	public final static String MSG_UNOPENED_DOORS_COUNT = "Das älteste ungeöffnete Türchen ist Nummer %d. Du hast noch %d Türchen zu öffnen.";
 
 	private static BaseComponent prefixedMessage(BaseComponent message) {
 		BaseComponent prefixedMessage = new TextComponent(PREFIX);
@@ -43,7 +48,19 @@ public final class Messages {
 		receiver.spigot().sendMessage(prefixedMessage(message));
 	}
 
-	public static void notifyAboutUnopenedDoors(CommandSender receiver) {
-		send(receiver, new TextComponent(MSG_UNOPENED_DOORS + "\n" + MSG_COMMAND_INFO));
+	/**
+	 * @return true if notification has been send (= hasUnopenedDoors)
+	 */
+	public static boolean notifyAboutUnopenedDoors(CommandSender receiver, ICalendar calendar) {
+		OptionalInt hasUnopenedDoors = calendar.getFirstUnopenedDay();
+		hasUnopenedDoors.ifPresent(firstDay -> {
+			StringBuilder sb = new StringBuilder();
+			sb.append(MSG_UNOPENED_DOORS)
+					.append("\n")
+					.append(String.format(MSG_UNOPENED_DOORS_COUNT, firstDay, calendar.getNumberOfOpenableDays()));
+
+			send(receiver, new TextComponent(sb.toString()));
+		});
+		return hasUnopenedDoors.isPresent();
 	}
 }
